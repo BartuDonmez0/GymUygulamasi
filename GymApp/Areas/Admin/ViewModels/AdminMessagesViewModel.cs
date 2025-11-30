@@ -25,7 +25,7 @@ public class AdminMessageReply
     [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string ToEmail { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Konu zorunludur.")]
+    [Required(ErrorMessage = "Konu zorunludur...")]
     [StringLength(120, ErrorMessage = "Konu en fazla 120 karakter olabilir.")]
     public string Subject { get; set; } = string.Empty;
 
