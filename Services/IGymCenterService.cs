@@ -10,5 +10,6 @@ public interface IGymCenterService
     Task<GymCenter> CreateGymCenterAsync(GymCenter gymCenter);
     Task<GymCenter> UpdateGymCenterAsync(GymCenter gymCenter);
     Task DeleteGymCenterAsync(int id);
+    Task<IEnumerable<GymCenter>> GetFilteredGymCentersAsync(int? dayOfWeek, int? activityId);
 }
 

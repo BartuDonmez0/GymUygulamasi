@@ -70,11 +70,108 @@
                             <i class="bi bi-house-door"></i> Ana Sayfaya Dön
                         </a>
                     </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
+                            <i class="bi bi-trash"></i> Profili Sil
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Profil Silme Onay Modal -->
+<div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-labelledby="deleteProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title" id="deleteProfileModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Profili Sil
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="text-center mb-3">Emin misiniz?</h5>
+                <p class="text-center text-muted">
+                    Profilinizi silmek istediğinize emin misiniz? Bu işlem geri alınamaz. 
+                    Tüm randevularınız, AI görüşmeleriniz ve diğer verileriniz kalıcı olarak silinecektir.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> İptal
+                </button>
+                <form id="deleteProfileForm" asp-action="DeleteProfile" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Evet, Profili Sil
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('deleteProfileForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Siliniyor...';
+        
+        try {
+            const formData = new FormData(form);
+            const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': token || ''
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Modal'ı kapat
+                const modalElement = document.getElementById('deleteProfileModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+                
+                // Başarı mesajı göster
+                alert(data.message || 'Profiliniz başarıyla silindi.');
+                
+                // Ana sayfaya yönlendir
+                window.location.href = '@Url.Action("Index", "Home")';
+            } else {
+                alert(data.message || 'Profil silinirken bir hata oluştu.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        } catch (error) {
+            alert('Bir hata oluştu: ' + error.message);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+</script>
 
 <style>
     .info-item {

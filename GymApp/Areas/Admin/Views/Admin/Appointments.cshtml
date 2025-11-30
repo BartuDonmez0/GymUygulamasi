@@ -11,6 +11,22 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <div class="card shadow-sm">
         <div class="card-body">
             @if (Model.Any())
@@ -70,15 +86,23 @@
                                                 <input type="hidden" name="id" value="@appointment.Id" />
                                                 <input type="hidden" name="status" value="@((int)AppointmentStatus.Approved)" />
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-success">
+                                                <button type="submit" class="btn btn-sm btn-success me-1">
                                                     <i class="bi bi-check-lg"></i> Onayla
+                                                </button>
+                                            </form>
+                                            <form asp-action="UpdateAppointmentStatus" method="post" style="display: inline;">
+                                                <input type="hidden" name="id" value="@appointment.Id" />
+                                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Rejected)" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-danger me-1" onclick="return confirm('Bu randevuyu reddetmek istediğinize emin misiniz?');">
+                                                    <i class="bi bi-x-lg"></i> Reddet
                                                 </button>
                                             </form>
                                         }
                                         <form asp-action="DeleteAppointment" method="post" style="display: inline;" onsubmit="return confirm('Bu randevuyu silmek istediğinize emin misiniz?');">
                                             <input type="hidden" name="id" value="@appointment.Id" />
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-danger">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
                                                 <i class="bi bi-trash"></i> Sil
                                             </button>
                                         </form>

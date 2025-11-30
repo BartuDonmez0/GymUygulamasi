@@ -1,4 +1,5 @@
 @model List<GymApp.Entities.Trainer>
+@using GymApp.Entities
 @{
     ViewData["Title"] = "Antrenörler";
 }
@@ -24,6 +25,7 @@
                     <table class="table table-hover">
                         <thead class="table-light">
                             <tr>
+                                <th>Fotoğraf</th>
                                 <th>ID</th>
                                 <th>Ad</th>
                                 <th>Soyad</th>
@@ -38,6 +40,21 @@
                             @foreach (var trainer in Model)
                             {
                                 <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
+                                        {
+                                            <img src="@trainer.ProfilePhotoUrl" alt="@trainer.FirstName @trainer.LastName" 
+                                                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" 
+                                                 onerror="this.src='https://via.placeholder.com/50?text=@trainer.FirstName[0]'" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" 
+                                                 style="width: 50px; height: 50px; font-weight: bold;">
+                                                @trainer.FirstName[0]@trainer.LastName[0]
+                                            </div>
+                                        }
+                                    </td>
                                     <td>@trainer.Id</td>
                                     <td>@trainer.FirstName</td>
                                     <td>@trainer.LastName</td>
@@ -45,19 +62,72 @@
                                     <td>@trainer.Phone</td>
                                     <td>@trainer.Specialization</td>
                                     <td>
-                                        @if (trainer.WorkingHours != null && trainer.WorkingHours.Any())
+                                        @{
+                                            var workingHoursDisplay = "Belirtilmemiş";
+                                            var workingHoursCount = 0;
+                                            if (!string.IsNullOrEmpty(trainer.WorkingHoursJson) && trainer.WorkingHoursJson != "[]")
+                                            {
+                                                try
+                                                {
+                                                    var jsonDoc = System.Text.Json.JsonDocument.Parse(trainer.WorkingHoursJson);
+                                                    var workingHoursList = new List<string>();
+                                                    var dayNames = new[] { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
+                                                    
+                                                    foreach (var item in jsonDoc.RootElement.EnumerateArray())
+                                                    {
+                                                        if (item.TryGetProperty("Day", out var dayElement) && 
+                                                            dayElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+                                                        {
+                                                            var day = dayElement.GetInt32();
+                                                            var dayName = day >= 0 && day < dayNames.Length ? dayNames[day] : $"Gün {day}";
+                                                            
+                                                            // Yeni format: Hours array
+                                                            if (item.TryGetProperty("Hours", out var hoursElement) && 
+                                                                hoursElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                                            {
+                                                                var hours = hoursElement.EnumerateArray()
+                                                                    .Select(h => h.GetString())
+                                                                    .Where(h => !string.IsNullOrEmpty(h))
+                                                                    .ToList();
+                                                                
+                                                                if (hours.Any())
+                                                                {
+                                                                    workingHoursList.Add($"{dayName}: {string.Join(", ", hours)}");
+                                                                    workingHoursCount++;
+                                                                }
+                                                            }
+                                                            // Eski format: TimeRange
+                                                            else if (item.TryGetProperty("TimeRange", out var timeRangeElement) && 
+                                                                     timeRangeElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                                                            {
+                                                                var timeRange = timeRangeElement.GetString();
+                                                                if (!string.IsNullOrEmpty(timeRange))
+                                                                {
+                                                                    workingHoursList.Add($"{dayName} {timeRange}");
+                                                                    workingHoursCount++;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    if (workingHoursList.Any())
+                                                    {
+                                                        workingHoursDisplay = string.Join(" | ", workingHoursList);
+                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    workingHoursDisplay = "Belirtilmemiş";
+                                                }
+                                            }
+                                        }
+                                        @if (workingHoursDisplay != "Belirtilmemiş" && workingHoursCount > 0)
                                         {
-                                            <span class="badge bg-info">@trainer.WorkingHours.Count Gün</span>
-                                            <br />
-                                            <small class="text-muted">
-                                                @string.Join(", ", trainer.WorkingHours.Select(wh => 
-                                                    $"{wh.DayOfWeek.ToString().Substring(0, 3)} {wh.StartTime:hh\\:mm}-{wh.EndTime:hh\\:mm}"
-                                                ))
-                                            </small>
+                                            <span class="text-dark" style="font-size: 0.875rem; font-weight: 500;">@workingHoursDisplay</span>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">Belirtilmemiş</span>
+                                            <span class="text-muted">@workingHoursDisplay</span>
                                         }
                                     </td>
                                     <td>

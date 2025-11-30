@@ -11,5 +11,7 @@ public interface IAppointmentService
     Task<Appointment> UpdateAppointmentAsync(Appointment appointment);
     Task DeleteAppointmentAsync(int id);
     Task UpdateAppointmentStatusAsync(int id, AppointmentStatus status);
+    Task<bool> ExistsAtSameTimeAsync(int trainerId, DateTime appointmentDate, TimeSpan appointmentTime);
+    Task<bool> ExistsAtSameTimeForMemberAsync(int memberId, DateTime appointmentDate, TimeSpan appointmentTime);
 }
 

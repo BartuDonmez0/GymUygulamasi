@@ -1,6 +1,9 @@
 @model GymApp.Entities.GymCenter
+@using GymApp.Entities
 @{
     ViewData["Title"] = Model.Name;
+    var activities = ViewBag.Activities as IEnumerable<Activity> ?? new List<Activity>();
+    var trainers = ViewBag.Trainers as List<Trainer> ?? new List<Trainer>();
 }
 
 <!-- Gym Center Header Section -->
@@ -44,39 +47,39 @@
         <div class="col-12 col-lg-8">
             <!-- Contact Information -->
             <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0"><i class="bi bi-info-circle"></i> İletişim Bilgileri</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <div class="contact-item">
-                                <i class="bi bi-geo-alt-fill text-primary"></i>
+                                <i class="bi bi-geo-alt-fill text-dark"></i>
                                 <strong>Adres:</strong>
                                 <p class="mb-0">@Model.Address</p>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="contact-item">
-                                <i class="bi bi-telephone-fill text-primary"></i>
+                                <i class="bi bi-telephone-fill text-dark"></i>
                                 <strong>Telefon:</strong>
                                 <p class="mb-0">
-                                    <a href="tel:@Model.Phone" class="text-decoration-none">@Model.Phone</a>
+                                    <a href="tel:@Model.Phone" class="text-decoration-none text-dark">@Model.Phone</a>
                                 </p>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="contact-item">
-                                <i class="bi bi-envelope-fill text-primary"></i>
+                                <i class="bi bi-envelope-fill text-dark"></i>
                                 <strong>E-posta:</strong>
                                 <p class="mb-0">
-                                    <a href="mailto:@Model.Email" class="text-decoration-none">@Model.Email</a>
+                                    <a href="mailto:@Model.Email" class="text-decoration-none text-dark">@Model.Email</a>
                                 </p>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="contact-item">
-                                <i class="bi bi-clock-fill text-primary"></i>
+                                <i class="bi bi-clock-fill text-dark"></i>
                                 <strong>Çalışma Saatleri:</strong>
                                 <div class="mb-0">
                                     @{
@@ -108,8 +111,8 @@
                                                                 // Saatleri formatla: "10-11" -> "10:00 - 11:00"
                                                                 var formattedHours = hours.Select(h => 
                                                                 {
-                                                                    var parts = h.Split('-');
-                                                                    if (parts.Length == 2)
+                                                                var parts = h?.Split('-');
+                                                                if (parts != null && parts.Length == 2)
                                                                     {
                                                                         return $"{parts[0]}:00 - {parts[1]}:00";
                                                                     }
@@ -154,36 +157,47 @@
             </div>
 
             <!-- Activities Section -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0"><i class="bi bi-list-check"></i> Aktiviteler</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Activities != null && Model.Activities.Any())
+                    @if (activities != null && activities.Any())
                     {
-                        <div class="row g-3">
-                            @foreach (var activity in Model.Activities)
+                        <div class="row g-4">
+                            @foreach (var activity in activities)
                             {
                                 <div class="col-12 col-md-6">
-                                    <div class="activity-item-card p-3 border rounded">
-                                        <h6 class="fw-bold mb-2">
-                                            <i class="bi bi-star-fill text-warning"></i> @activity.Name
-                                        </h6>
-                                        <p class="small text-muted mb-2">@activity.Type</p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">
-                                                <i class="bi bi-clock"></i> @activity.Duration dk
-                                            </small>
-                                            <strong class="text-success">@activity.Price ₺</strong>
+                                    <div class="card shadow-sm border-0 h-100" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s ease;"
+                                         onmouseover="this.style.transform='translateY(-5px)';"
+                                         onmouseout="this.style.transform='translateY(0)';">
+                                        <div style="height: 200px; overflow: hidden;">
+                                            <img src="@(string.IsNullOrEmpty(activity.ImageUrl) ? "https://via.placeholder.com/400x200?text=Activity" : activity.ImageUrl)" 
+                                                 class="card-img-top" alt="@activity.Name" 
+                                                 style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                                                 onmouseover="this.style.transform='scale(1.1)';"
+                                                 onmouseout="this.style.transform='scale(1)';">
+                                        </div>
+                                        <div class="card-body p-4">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h5 class="card-title fw-bold text-dark mb-0">@activity.Name</h5>
+                                                <span class="badge bg-dark text-white">@activity.Type.ToString()</span>
+                                            </div>
+                                            <p class="card-text text-muted small mb-3">@(activity.Description.Length > 100 ? activity.Description.Substring(0, 100) + "..." : activity.Description)</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <small class="text-dark">
+                                                        <i class="bi bi-clock"></i> @activity.Duration dk
+                                                    </small>
+                                                </div>
+                                                <div>
+                                                    <strong class="text-dark">@activity.Price.ToString("N2") ₺</strong>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             }
-                        </div>
-                        <div class="mt-4 text-center">
-                            <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.Id })" class="btn btn-success">
-                                <i class="bi bi-arrow-right-circle"></i> Tüm Aktiviteleri Görüntüle
-                            </a>
                         </div>
                     }
                     else
@@ -216,6 +230,64 @@
                 </div>
             }
 
+            <!-- Antrenörler Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Antrenörler</h5>
+                </div>
+                <div class="card-body">
+                    @if (trainers != null && trainers.Any())
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var trainer in trainers)
+                            {
+                                <div class="card shadow-sm border-0" style="border-radius: 15px; transition: transform 0.3s ease;"
+                                     onmouseover="this.style.transform='translateY(-5px)';"
+                                     onmouseout="this.style.transform='translateY(0)';">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            @if (!string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
+                                            {
+                                                <img src="@trainer.ProfilePhotoUrl" alt="@trainer.FirstName @trainer.LastName" 
+                                                     class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" 
+                                                     onerror="this.src='https://via.placeholder.com/50?text=@trainer.FirstName[0]'" />
+                                            }
+                                            else
+                                            {
+                                                <div class="rounded-circle bg-dark d-flex align-items-center justify-content-center text-white me-3" 
+                                                     style="width: 50px; height: 50px; font-weight: bold;">
+                                                    @trainer.FirstName[0]@trainer.LastName[0]
+                                                </div>
+                                            }
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0 fw-bold text-dark">@trainer.FirstName @trainer.LastName</h6>
+                                                <small class="text-muted">@trainer.Email</small>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(trainer.Specialization))
+                                        {
+                                            <p class="mb-2 small text-dark">
+                                                <i class="bi bi-star-fill text-dark"></i> 
+                                                <strong>Uzmanlık:</strong> @trainer.Specialization
+                                            </p>
+                                        }
+                                        <div class="d-grid">
+                                            <a href="@Url.Action("Index", "Trainer")" class="btn btn-dark btn-sm">
+                                                <i class="bi bi-eye"></i> Detayları Gör
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">Henüz antrenör bulunmamaktadır.</p>
+                    }
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white">
@@ -223,13 +295,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.Id })" class="btn btn-outline-primary">
+                        <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.Id })" class="btn btn-outline-dark">
                             <i class="bi bi-list-check"></i> Aktiviteleri Görüntüle
                         </a>
-                        <a href="@Url.Action("Index", "Appointment")" class="btn btn-outline-success">
+                        <a href="@Url.Action("Index", "Appointment")" class="btn btn-outline-dark">
                             <i class="bi bi-calendar-plus"></i> Randevu Al
                         </a>
-                        <a href="@Url.Action("Index", "Trainer")" class="btn btn-outline-info">
+                        <a href="@Url.Action("Index", "Trainer")" class="btn btn-outline-dark">
                             <i class="bi bi-person-badge"></i> Antrenörleri Gör
                         </a>
                     </div>
@@ -275,7 +347,7 @@
     .ad-icon {
         width: 50px;
         height: 50px;
-        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        background: #000;
         border-radius: 50%;
         display: flex;
         align-items: center;

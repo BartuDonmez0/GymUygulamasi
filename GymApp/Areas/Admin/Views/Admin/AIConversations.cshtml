@@ -1,6 +1,7 @@
+@using System.Linq
 @{
     ViewData["Title"] = "AI Görüşmeleri";
-    var conversations = ViewBag.Conversations as dynamic;
+    var conversations = ViewBag.Conversations as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var allMessages = ViewBag.AllMessages as IEnumerable<GymApp.Entities.ChatMessage> ?? new List<GymApp.Entities.ChatMessage>();
 }
 
@@ -77,84 +78,73 @@
         </div>
     </div>
 
-    @if (conversations != null)
+    @if (conversations != null && conversations.Any())
     {
-        var conversationsList = conversations as System.Collections.IEnumerable;
-        var hasConversations = false;
-        if (conversationsList != null)
-        {
-            foreach (var item in conversationsList)
-            {
-                hasConversations = true;
-                break;
-            }
-        }
-        
-        @if (hasConversations)
-        {
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Kullanıcıya Göre Görüşmeler</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="accordion" id="conversationsAccordion">
-                                @{
-                                    int index = 0;
-                                }
-                                @foreach (dynamic conversation in conversationsList)
-                                {
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="heading@(index)">
-                                            <button class="accordion-button @(index == 0 ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(index)" aria-expanded="@(index == 0 ? "true" : "false")">
-                                                <div class="d-flex justify-content-between w-100 me-3">
-                                                    <div>
-                                                        <strong>@(conversation?.MemberName ?? "Bilinmeyen")</strong>
-                                                        <small class="text-muted d-block">@(conversation?.MemberEmail ?? "")</small>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <span class="badge bg-dark">@(conversation?.MessageCount ?? 0) mesaj</span>
-                                                        <small class="text-muted d-block">@(conversation?.LastMessageDate != null ? ((DateTime)conversation.LastMessageDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
-                                                    </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-people me-2"></i>Kullanıcıya Göre Görüşmeler</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="conversationsAccordion">
+                            @{
+                                int index = 0;
+                            }
+                            @foreach (var conversation in conversations)
+                            {
+                                var memberName = conversation?.MemberName?.ToString() ?? "Bilinmeyen";
+                                var memberEmail = conversation?.MemberEmail?.ToString() ?? "";
+                                var messageCount = conversation?.MessageCount ?? 0;
+                                var lastMessageDate = conversation?.LastMessageDate as DateTime?;
+                                var messages = conversation?.Messages as IEnumerable<GymApp.Entities.ChatMessage> ?? new List<GymApp.Entities.ChatMessage>();
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading@(index)">
+                                        <button class="accordion-button @(index == 0 ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(index)" aria-expanded="@(index == 0 ? "true" : "false")">
+                                            <div class="d-flex justify-content-between w-100 me-3">
+                                                <div>
+                                                    <strong>@memberName</strong>
+                                                    <small class="text-muted d-block">@memberEmail</small>
                                                 </div>
-                                            </button>
-                                        </h2>
-                                        <div id="collapse@(index)" class="accordion-collapse collapse @(index == 0 ? "show" : "")" aria-labelledby="heading@(index)">
-                                            <div class="accordion-body">
-                                                <div class="chat-conversation">
-                                                    @if (conversation?.Messages != null)
-                                                    {
-                                                        @foreach (var msg in conversation.Messages)
+                                                <div class="text-end">
+                                                    <span class="badge bg-dark">@messageCount mesaj</span>
+                                                    <small class="text-muted d-block">@(lastMessageDate?.ToString("dd.MM.yyyy HH:mm") ?? "")</small>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse@(index)" class="accordion-collapse collapse @(index == 0 ? "show" : "")" aria-labelledby="heading@(index)">
+                                        <div class="accordion-body">
+                                            <div class="chat-conversation">
+                                                @foreach (var msg in messages)
+                                                {
+                                                    <div class="message-item mb-3">
+                                                        <div class="user-message-box p-3 mb-2 bg-light rounded">
+                                                            <strong>Kullanıcı:</strong> @(msg?.Message ?? "")
+                                                            <small class="text-muted d-block mt-1">@(msg?.CreatedDate.ToString("dd.MM.yyyy HH:mm") ?? "")</small>
+                                                        </div>
+                                                        @if (msg != null && !string.IsNullOrEmpty(msg.Response))
                                                         {
-                                                            <div class="message-item mb-3">
-                                                                <div class="user-message-box p-3 mb-2 bg-light rounded">
-                                                                    <strong>Kullanıcı:</strong> @(msg?.Message ?? "")
-                                                                    <small class="text-muted d-block mt-1">@(msg?.CreatedDate != null ? ((DateTime)msg.CreatedDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
-                                                                </div>
-                                                                @if (msg != null && !string.IsNullOrEmpty(msg.Response))
-                                                                {
-                                                                    <div class="ai-message-box p-3 bg-dark text-white rounded">
-                                                                        <strong><i class="bi bi-robot"></i> AI:</strong>
-                                                                        <div class="mt-2">@Html.Raw((msg.Response ?? "").Replace("\n", "<br>"))</div>
-                                                                        <small class="text-white-50 d-block mt-2">@(msg.CreatedDate != null ? ((DateTime)msg.CreatedDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
-                                                                    </div>
-                                                                }
+                                                            <div class="ai-message-box p-3 bg-dark text-white rounded">
+                                                                <strong><i class="bi bi-robot"></i> AI:</strong>
+                                                                <div class="mt-2">@Html.Raw((msg.Response ?? "").Replace("\n", "<br>"))</div>
+                                                                <small class="text-white-50 d-block mt-2">@(msg.CreatedDate.ToString("dd.MM.yyyy HH:mm") ?? "")</small>
                                                             </div>
                                                         }
-                                                    }
-                                                </div>
+                                                    </div>
+                                                }
                                             </div>
                                         </div>
                                     </div>
-                                    index++;
-                                }
-                            </div>
+                                </div>
+                                index++;
+                            }
                         </div>
                     </div>
                 </div>
             </div>
-        }
+        </div>
     }
 </div>
 

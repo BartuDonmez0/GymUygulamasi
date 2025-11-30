@@ -71,5 +71,10 @@ public class GymCenterService : IGymCenterService
             await _gymCenterRepository.DeleteAsync(gymCenter);
         }
     }
+
+    public async Task<IEnumerable<GymCenter>> GetFilteredGymCentersAsync(int? dayOfWeek, int? activityId)
+    {
+        return await _gymCenterRepository.GetFilteredAsync(dayOfWeek, activityId);
+    }
 }
 

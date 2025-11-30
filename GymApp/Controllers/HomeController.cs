@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GymApp.Entities;
 using GymApp.Data;
+using GymApp.Services;
 
 namespace GymApp.Controllers;
 

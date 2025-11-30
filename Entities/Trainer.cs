@@ -35,6 +35,9 @@ public class Trainer
     // Çalışma saatleri JSON formatında
     public string WorkingHoursJson { get; set; } = "[]"; // JSON array: [{"Day":1,"TimeRange":"09:00-18:00"},...]
     
+    // Profil fotoğrafı URL
+    public string ProfilePhotoUrl { get; set; } = string.Empty;
+    
     // Navigation properties
     public GymCenter GymCenter { get; set; } = null!;
     public List<Appointment> Appointments { get; set; } = new();

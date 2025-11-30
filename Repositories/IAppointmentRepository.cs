@@ -10,5 +10,7 @@ public interface IAppointmentRepository : IRepository<Appointment>
     Task<IEnumerable<Appointment>> GetWithDetailsAsync();
     Task<Appointment?> GetWithDetailsAsync(int id);
     Task<IEnumerable<Appointment>> GetByStatusAsync(AppointmentStatus status);
+    Task<bool> ExistsAtSameTimeAsync(int trainerId, DateTime appointmentDate, TimeSpan appointmentTime);
+    Task<bool> ExistsAtSameTimeForMemberAsync(int memberId, DateTime appointmentDate, TimeSpan appointmentTime);
 }
 

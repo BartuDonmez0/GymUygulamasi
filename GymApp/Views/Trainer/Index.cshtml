@@ -1,12 +1,277 @@
+@model List<GymApp.Entities.Trainer>
+@using GymApp.Entities
 @{
     ViewData["Title"] = "Antrenörler";
+    var activities = ViewBag.Activities as IEnumerable<Activity> ?? new List<Activity>();
+    var selectedActivityId = ViewBag.SelectedActivityId as int?;
+    var selectedDayOfWeek = ViewBag.SelectedDayOfWeek as int?;
 }
 
-<div class="page-header">
-    <h2><i class="bi bi-person-badge"></i> Antrenörler</h2>
+<div class="container px-3 px-md-4">
+<!-- Filtreleme Formu -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label for="dayOfWeek" class="form-label text-dark"><i class="bi bi-calendar-week"></i> Çalışma Günü</label>
+                <select class="form-select" id="dayOfWeek">
+                    <option value="">Tüm Günler</option>
+                    @if (selectedDayOfWeek == 0) { <option value="0" selected>Pazar</option> } else { <option value="0">Pazar</option> }
+                    @if (selectedDayOfWeek == 1) { <option value="1" selected>Pazartesi</option> } else { <option value="1">Pazartesi</option> }
+                    @if (selectedDayOfWeek == 2) { <option value="2" selected>Salı</option> } else { <option value="2">Salı</option> }
+                    @if (selectedDayOfWeek == 3) { <option value="3" selected>Çarşamba</option> } else { <option value="3">Çarşamba</option> }
+                    @if (selectedDayOfWeek == 4) { <option value="4" selected>Perşembe</option> } else { <option value="4">Perşembe</option> }
+                    @if (selectedDayOfWeek == 5) { <option value="5" selected>Cuma</option> } else { <option value="5">Cuma</option> }
+                    @if (selectedDayOfWeek == 6) { <option value="6" selected>Cumartesi</option> } else { <option value="6">Cumartesi</option> }
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label for="activityId" class="form-label text-dark"><i class="bi bi-list-check"></i> Aktivite</label>
+                <select class="form-select" id="activityId">
+                    <option value="">Tümü</option>
+                    @if (activities != null && activities.Any())
+                    {
+                        @foreach (var activity in activities)
+                        {
+                            @if (selectedActivityId == activity.Id)
+                            {
+                                <option value="@activity.Id" selected>@activity.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@activity.Id">@activity.Name</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-dark w-100 me-2" onclick="applyFilters()">
+                    <i class="bi bi-funnel"></i> Filtrele
+                </button>
+                <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
+                    <i class="bi bi-x-circle"></i> Temizle
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="page-content">
-    <h3>Hoşgeldin Antrenörler Sayfası</h3>
+@if (Model != null && Model.Any())
+{
+    <div class="row g-4">
+        @foreach (var trainer in Model)
+        {
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card shadow-sm h-100 border-0" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" 
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" 
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                    <div class="card-body p-4">
+                        <!-- Profil Fotoğrafı ve İsim -->
+                        <div class="text-center mb-3">
+                            @if (!string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
+                            {
+                                <img src="@trainer.ProfilePhotoUrl" alt="@trainer.FirstName @trainer.LastName" 
+                                     class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; border: 4px solid #f0f0f0;" 
+                                     onerror="this.src='https://via.placeholder.com/100?text=@trainer.FirstName[0]'" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle bg-dark d-flex align-items-center justify-content-center text-white mx-auto mb-3" 
+                                     style="width: 100px; height: 100px; font-weight: bold; font-size: 2rem;">
+                                    @trainer.FirstName[0]@trainer.LastName[0]
+                                </div>
+                            }
+                            <h4 class="card-title mb-1 fw-bold text-dark">@trainer.FirstName @trainer.LastName</h4>
+                            <p class="text-muted small mb-0">@trainer.Email</p>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <!-- Müsaitlik -->
+                        @{
+                            var workingHoursDisplay = "Belirtilmemiş";
+                            var workingHoursCount = 0;
+                            if (!string.IsNullOrEmpty(trainer.WorkingHoursJson) && trainer.WorkingHoursJson != "[]")
+                            {
+                                try
+                                {
+                                    var jsonDoc = System.Text.Json.JsonDocument.Parse(trainer.WorkingHoursJson);
+                                    var workingHoursList = new List<string>();
+                                    var dayNames = new[] { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
+                                    
+                                    foreach (var item in jsonDoc.RootElement.EnumerateArray())
+                                    {
+                                        if (item.TryGetProperty("Day", out var dayElement) && 
+                                            dayElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+                                        {
+                                            var day = dayElement.GetInt32();
+                                            var dayName = day >= 0 && day < dayNames.Length ? dayNames[day] : $"Gün {day}";
+                                            
+                                            if (item.TryGetProperty("Hours", out var hoursElement) && 
+                                                hoursElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                            {
+                                                var hours = hoursElement.EnumerateArray()
+                                                    .Select(h => h.GetString())
+                                                    .Where(h => !string.IsNullOrEmpty(h))
+                                                    .ToList();
+                                                
+                                                if (hours.Any())
+                                                {
+                                                    workingHoursList.Add($"{dayName}: {string.Join(", ", hours)}");
+                                                    workingHoursCount++;
+                                                }
+                                            }
+                                            else if (item.TryGetProperty("TimeRange", out var timeRangeElement) && 
+                                                     timeRangeElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                                            {
+                                                var timeRange = timeRangeElement.GetString();
+                                                if (!string.IsNullOrEmpty(timeRange))
+                                                {
+                                                    workingHoursList.Add($"{dayName} {timeRange}");
+                                                    workingHoursCount++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (workingHoursList.Any())
+                                    {
+                                        workingHoursDisplay = string.Join(" | ", workingHoursList);
+                                    }
+                                }
+                                catch
+                                {
+                                    workingHoursDisplay = "Belirtilmemiş";
+                                }
+                            }
+                        }
+                        
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-clock-fill text-dark me-2"></i>
+                                <strong class="small text-dark">Müsaitlik:</strong>
+                            </div>
+                            @if (workingHoursDisplay != "Belirtilmemiş" && workingHoursCount > 0)
+                            {
+                                <p class="card-text mb-0 small text-dark">@workingHoursDisplay</p>
+                            }
+                            else
+                            {
+                                <p class="card-text mb-0 small text-muted">@workingHoursDisplay</p>
+                            }
+                        </div>
+                        
+                        <!-- Uzmanlık Alanı - Müsaitliğin Altında (Detaylı) -->
+                        @if (!string.IsNullOrEmpty(trainer.Specialization))
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-star-fill text-dark me-2"></i>
+                                    <strong class="small text-dark">Uzmanlık Alanları:</strong>
+                                </div>
+                                <p class="card-text mb-0 small text-dark">@trainer.Specialization</p>
+                            </div>
+                        }
+                        
+                        <!-- Telefon -->
+                        <div class="mb-3">
+                            <p class="card-text mb-0 small">
+                                <i class="bi bi-telephone-fill text-dark me-2"></i>
+                                <span class="text-dark">@trainer.Phone</span>
+                            </p>
+                        </div>
+                        
+                        <!-- Spor Salonu -->
+                        @if (trainer.GymCenter != null)
+                        {
+                            <div class="mb-3 p-2 bg-light rounded">
+                                <p class="mb-1 small">
+                                    <i class="bi bi-building text-dark me-2"></i>
+                                    <strong class="text-dark">Spor Salonu:</strong>
+                                </p>
+                                <p class="mb-0 small fw-bold text-dark">@trainer.GymCenter.Name</p>
+                            </div>
+                        }
+                        
+                        <!-- Butonlar -->
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="@Url.Action("Create", "Appointment", new { trainerId = trainer.Id })" 
+                               class="btn btn-dark btn-sm">
+                                <i class="bi bi-calendar-plus"></i> Randevu Al
+                            </a>
+                            @if (trainer.GymCenter != null)
+                            {
+                                <a href="@Url.Action("Details", "GymCenter", new { id = trainer.GymCenter.Id })" 
+                                   class="btn btn-outline-dark btn-sm">
+                                    <i class="bi bi-building"></i> Spor Salonuna Git
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> Henüz antrenör bulunmamaktadır.
+    </div>
+}
 </div>
 
+<style>
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+    
+    .btn-dark {
+        background-color: #000;
+        border-color: #000;
+        color: #fff;
+    }
+    
+    .btn-dark:hover {
+        background-color: #333;
+        border-color: #333;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .btn-outline-dark {
+        border-color: #000;
+        color: #000;
+    }
+    
+    .btn-outline-dark:hover {
+        background-color: #000;
+        border-color: #000;
+        color: #fff;
+    }
+</style>
+
+<script>
+    function applyFilters() {
+        const dayOfWeek = document.getElementById('dayOfWeek').value;
+        const activityId = document.getElementById('activityId').value;
+        
+        const params = new URLSearchParams();
+        if (dayOfWeek) params.append('dayOfWeek', dayOfWeek);
+        if (activityId) params.append('activityId', activityId);
+        
+        const url = '@Url.Action("Index", "Trainer")' + (params.toString() ? '?' + params.toString() : '');
+        window.location.href = url;
+    }
+
+    function clearFilters() {
+        window.location.href = '@Url.Action("Index", "Trainer")';
+    }
+</script>

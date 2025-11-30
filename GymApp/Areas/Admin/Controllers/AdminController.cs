@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using GymApp.Entities;
 using GymApp.Services;
 using GymApp.Areas.Admin.ViewModels;
@@ -6,7 +7,13 @@ using System.Linq;
 
 namespace GymApp.Areas.Admin.Controllers;
 
+/// <summary>
+/// Admin Controller - Admin paneli için CRUD işlemlerini yönetir
+/// CRUD işlemleri: Spor salonu, antrenör, aktivite ve randevu yönetimi
+/// Authorization: Sadece Admin rolü erişebilir
+/// </summary>
 [Area("Admin")]
+[Authorize(Roles = "Admin")] // Rol bazlı yetkilendirme: Sadece Admin rolü erişebilir
 public class AdminController : Controller
 {
     private readonly IMemberService _memberService;
@@ -49,18 +56,22 @@ public class AdminController : Controller
         }
     ];
 
+    private readonly IChatMessageService _chatMessageService;
+
     public AdminController(
         IMemberService memberService,
         ITrainerService trainerService,
         IActivityService activityService,
         IGymCenterService gymCenterService,
-        IAppointmentService appointmentService)
+        IAppointmentService appointmentService,
+        IChatMessageService chatMessageService)
     {
         _memberService = memberService;
         _trainerService = trainerService;
         _activityService = activityService;
         _gymCenterService = gymCenterService;
         _appointmentService = appointmentService;
+        _chatMessageService = chatMessageService;
     }
 
     private bool IsAdmin()
@@ -137,7 +148,12 @@ public class AdminController : Controller
             Name = gc.Name,
             WorkingHoursJson = gc.WorkingHoursJson ?? "[]"
         }).ToList();
+        
+        // JSON serialization - PropertyNamingPolicy kullanmadan direkt serialize et
         ViewBag.GymCentersJson = System.Text.Json.JsonSerializer.Serialize(gymCentersWithHours);
+        
+        // Debug için
+        System.Diagnostics.Debug.WriteLine($"CreateTrainer - GymCenters count: {gymCenters.Count()}, JSON: {ViewBag.GymCentersJson}");
         
         return View();
     }
@@ -160,6 +176,58 @@ public class AdminController : Controller
             trainer.Password = "default123"; // Varsayılan şifre (gerekirse değiştirilebilir)
         }
 
+        // Specialization alanını ModelState'den temizle (view'da yok, aktivitelerden oluşturulacak)
+        ModelState.Remove("Specialization");
+        // Specialization'ı seçilen aktivitelerden oluştur
+        if (Request.Form.ContainsKey("SelectedActivityIds"))
+        {
+            var selectedActivityIds = Request.Form["SelectedActivityIds"]
+                .ToString()
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Where(id => int.TryParse(id, out _))
+                .ToList();
+            
+            if (selectedActivityIds.Any())
+            {
+                var activityNames = new List<string>();
+                var activities = await _activityService.GetAllActivitiesAsync();
+                foreach (var activityIdStr in selectedActivityIds)
+                {
+                    if (int.TryParse(activityIdStr, out int activityId))
+                    {
+                        var activity = activities.FirstOrDefault(a => a.Id == activityId);
+                        if (activity != null)
+                        {
+                            activityNames.Add(activity.Name);
+                        }
+                    }
+                }
+                trainer.Specialization = string.Join(", ", activityNames);
+            }
+            else
+            {
+                trainer.Specialization = "Belirtilmemiş";
+            }
+        }
+        else
+        {
+            trainer.Specialization = "Belirtilmemiş";
+        }
+
+        // WorkingHoursJson'u ModelState'den temizle (form'dan manuel alacağız)
+        ModelState.Remove("WorkingHoursJson");
+        
+        // GymCenterId'yi form'dan manuel olarak al
+        if (Request.Form.ContainsKey("GymCenterId"))
+        {
+            var gymCenterIdValue = Request.Form["GymCenterId"].ToString();
+            if (!string.IsNullOrEmpty(gymCenterIdValue) && int.TryParse(gymCenterIdValue, out int parsedGymCenterId) && parsedGymCenterId > 0)
+            {
+                trainer.GymCenterId = parsedGymCenterId;
+                ModelState.Remove("GymCenterId");
+            }
+        }
+
         // Seçilen aktiviteleri TrainerActivities olarak ekle
         if (Request.Form.ContainsKey("SelectedActivityIds"))
         {
@@ -168,6 +236,7 @@ public class AdminController : Controller
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(id => int.TryParse(id, out int parsedId) ? parsedId : 0)
                 .Where(id => id > 0)
+                .Distinct() // Duplicate'leri temizle
                 .ToList();
             
             trainer.TrainerActivities = selectedActivityIds.Select(activityId => new TrainerActivity
@@ -180,20 +249,112 @@ public class AdminController : Controller
             trainer.TrainerActivities = new List<TrainerActivity>();
         }
 
-        if (ModelState.IsValid)
+        // WorkingHoursJson'u form'dan manuel olarak al
+        if (Request.Form.ContainsKey("WorkingHoursJson"))
         {
-            // WorkingHoursJson zaten trainer içinde, direkt kaydet
+            var workingHoursJson = Request.Form["WorkingHoursJson"].ToString();
+            if (!string.IsNullOrEmpty(workingHoursJson))
+            {
+                trainer.WorkingHoursJson = workingHoursJson;
+            }
+        }
+
+        // ModelState hatalarını logla ve temizle
+        var modelStateErrors = ModelState
+            .Where(x => x.Value?.Errors.Count > 0)
+            .Select(x => new { Field = x.Key, Errors = x.Value?.Errors.Select(e => e.ErrorMessage) })
+            .ToList();
+        
+        if (modelStateErrors.Any())
+        {
+            System.Diagnostics.Debug.WriteLine("=== ModelState Errors (Before Cleanup) ===");
+            foreach (var error in modelStateErrors)
+            {
+                System.Diagnostics.Debug.WriteLine($"Field: {error.Field}, Errors: {string.Join(", ", error.Errors ?? new List<string>())}");
+            }
+        }
+
+        // Kritik olmayan navigation property hatalarını temizle
+        var keysToRemove = ModelState.Keys.Where(k => 
+            k.Contains("GymCenter") || 
+            k.Contains("TrainerActivities") || 
+            k.Contains("Appointments") || 
+            k.Contains("WorkingHours")).ToList();
+        
+        foreach (var key in keysToRemove)
+        {
+            ModelState.Remove(key);
+        }
+
+        // ModelState'i tekrar kontrol et - sadece kritik hataları kontrol et
+        var criticalErrors = ModelState
+            .Where(x => x.Value?.Errors.Count > 0 && 
+                   (x.Key == "FirstName" || x.Key == "LastName" || x.Key == "Email" || 
+                    x.Key == "Phone" || x.Key == "GymCenterId"))
+            .ToList();
+        
+        if (!criticalErrors.Any() && !string.IsNullOrEmpty(trainer.FirstName) && 
+            !string.IsNullOrEmpty(trainer.LastName) && !string.IsNullOrEmpty(trainer.Email) && 
+            !string.IsNullOrEmpty(trainer.Phone) && trainer.GymCenterId > 0)
+        {
+            // WorkingHoursJson boşsa default değer ata
             if (string.IsNullOrEmpty(trainer.WorkingHoursJson))
             {
                 trainer.WorkingHoursJson = "[]";
             }
             
-            await _trainerService.CreateTrainerAsync(trainer);
-            return RedirectToAction("Trainers");
+            // ProfilePhotoUrl boşsa boş string olarak ayarla
+            if (string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
+            {
+                trainer.ProfilePhotoUrl = string.Empty;
+            }
+            
+            try
+            {
+                await _trainerService.CreateTrainerAsync(trainer);
+                return RedirectToAction("Trainers");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Trainer oluşturma hatası: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                // Inner exception'ı da logla
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                ModelState.AddModelError("", $"Antrenör oluşturulurken hata oluştu: {errorMessage}");
+            }
+        }
+        else
+        {
+            // Kritik hataları logla
+            System.Diagnostics.Debug.WriteLine("=== Kritik Hatalar ===");
+            foreach (var error in criticalErrors)
+            {
+                System.Diagnostics.Debug.WriteLine($"Field: {error.Key}, Errors: {string.Join(", ", error.Value?.Errors.Select(e => e.ErrorMessage) ?? new List<string>())}");
+            }
+            System.Diagnostics.Debug.WriteLine($"FirstName: {trainer.FirstName}, LastName: {trainer.LastName}, Email: {trainer.Email}, Phone: {trainer.Phone}, GymCenterId: {trainer.GymCenterId}");
         }
 
+        // Hata varsa ViewBag'leri tekrar set et
         ViewBag.GymCenters = await _gymCenterService.GetAllGymCentersAsync();
         ViewBag.Activities = await _activityService.GetAllActivitiesAsync();
+        
+        // Spor salonlarının çalışma saatlerini JSON olarak gönder
+        var gymCenters = await _gymCenterService.GetAllGymCentersAsync();
+        var gymCentersWithHours = gymCenters.Select(gc => new
+        {
+            Id = gc.Id,
+            Name = gc.Name,
+            WorkingHoursJson = gc.WorkingHoursJson ?? "[]"
+        }).ToList();
+        ViewBag.GymCentersJson = System.Text.Json.JsonSerializer.Serialize(gymCentersWithHours);
+        
         return View(trainer);
     }
 
@@ -259,6 +420,20 @@ public class AdminController : Controller
             trainer.Password = existingTrainer.Password;
         }
 
+        // WorkingHoursJson'u ModelState'den temizle (form'dan manuel alacağız)
+        ModelState.Remove("WorkingHoursJson");
+        
+        // GymCenterId'yi form'dan manuel olarak al
+        if (Request.Form.ContainsKey("GymCenterId"))
+        {
+            var gymCenterIdValue = Request.Form["GymCenterId"].ToString();
+            if (!string.IsNullOrEmpty(gymCenterIdValue) && int.TryParse(gymCenterIdValue, out int parsedGymCenterId) && parsedGymCenterId > 0)
+            {
+                trainer.GymCenterId = parsedGymCenterId;
+                ModelState.Remove("GymCenterId");
+            }
+        }
+
         // Seçilen aktiviteleri TrainerActivities olarak ekle
         if (Request.Form.ContainsKey("SelectedActivityIds"))
         {
@@ -267,6 +442,7 @@ public class AdminController : Controller
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(id => int.TryParse(id, out int parsedId) ? parsedId : 0)
                 .Where(id => id > 0)
+                .Distinct() // Duplicate'leri temizle
                 .ToList();
             
             trainer.TrainerActivities = selectedActivityIds.Select(activityId => new TrainerActivity
@@ -279,26 +455,54 @@ public class AdminController : Controller
             trainer.TrainerActivities = new List<TrainerActivity>();
         }
 
-        if (ModelState.IsValid)
+        // WorkingHoursJson'u form'dan manuel olarak al
+        if (Request.Form.ContainsKey("WorkingHoursJson"))
+        {
+            var workingHoursJson = Request.Form["WorkingHoursJson"].ToString();
+            if (!string.IsNullOrEmpty(workingHoursJson))
+            {
+                trainer.WorkingHoursJson = workingHoursJson;
+            }
+        }
+
+        // ModelState'i kontrol et - sadece kritik hataları kontrol et
+        var criticalErrors = ModelState
+            .Where(x => x.Value?.Errors.Count > 0 && 
+                   (x.Key == "FirstName" || x.Key == "LastName" || x.Key == "Email" || 
+                    x.Key == "Phone" || x.Key == "GymCenterId"))
+            .ToList();
+        
+        if (!criticalErrors.Any() && !string.IsNullOrEmpty(trainer.FirstName) && 
+            !string.IsNullOrEmpty(trainer.LastName) && !string.IsNullOrEmpty(trainer.Email) && 
+            !string.IsNullOrEmpty(trainer.Phone) && trainer.GymCenterId > 0)
         {
             try
             {
-                // WorkingHoursJson zaten trainer içinde, boşsa default değer ata
+                // WorkingHoursJson boşsa default değer ata
                 if (string.IsNullOrEmpty(trainer.WorkingHoursJson))
                 {
                     trainer.WorkingHoursJson = "[]";
                 }
                 
+                // ProfilePhotoUrl boşsa boş string olarak ayarla
+                if (string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
+                {
+                    trainer.ProfilePhotoUrl = string.Empty;
+                }
+                
                 await _trainerService.UpdateTrainerAsync(trainer);
                 return RedirectToAction("Trainers");
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Trainer güncelleme hatası: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                ModelState.AddModelError("", $"Antrenör güncellenirken hata oluştu: {ex.Message}");
+                
                 if (await _trainerService.GetTrainerByIdAsync(id) == null)
                 {
                     return NotFound();
                 }
-                throw;
             }
         }
 
@@ -359,16 +563,11 @@ public class AdminController : Controller
 
         SetActiveMenu("activities");
 
-        // ÖNCE: ModelState'den tüm GymCenterId hatalarını temizle (Required attribute hatası dahil)
-        // Bu, Required attribute'un int için 0 değerini "boş" olarak kabul etmesi sorununu çözer
-        if (ModelState.ContainsKey("GymCenterId"))
-        {
-            ModelState["GymCenterId"]!.Errors.Clear();
-        }
-        if (ModelState.ContainsKey("GymCenter"))
-        {
-            ModelState["GymCenter"]!.Errors.Clear();
-        }
+        // ÖNCE: ModelState'den tüm GymCenterId ve navigation property hatalarını temizle
+        ModelState.Remove("GymCenterId");
+        ModelState.Remove("GymCenter");
+        ModelState.Remove("TrainerActivities");
+        ModelState.Remove("Appointments");
 
         // DEBUG: Form verilerini logla
         System.Diagnostics.Debug.WriteLine("=== CreateActivity POST ===");
@@ -376,7 +575,6 @@ public class AdminController : Controller
         System.Diagnostics.Debug.WriteLine($"Form Keys: {string.Join(", ", Request.Form.Keys)}");
         
         // GymCenterId'yi form'dan manuel olarak al ve parse et
-        // Model binding başarısız olmuş olabilir, bu yüzden form'dan direkt alıyoruz
         bool gymCenterIdFound = false;
         if (Request.Form.ContainsKey("GymCenterId"))
         {
@@ -408,11 +606,7 @@ public class AdminController : Controller
         else
         {
             System.Diagnostics.Debug.WriteLine($"GymCenterId is valid: {activity.GymCenterId}");
-            // ModelState'den tekrar temizle (güvenlik için)
-            if (ModelState.ContainsKey("GymCenterId"))
-            {
-                ModelState["GymCenterId"]!.Errors.Clear();
-            }
+            ModelState.Remove("GymCenterId"); // ModelState'den temizle
         }
 
         // ImageUrl boşsa boş string olarak ayarla
@@ -429,25 +623,38 @@ public class AdminController : Controller
             activity.Description = string.Empty;
         }
 
-        // Type enum binding kontrolü - eğer 0 ise (default enum değeri) hata ekle
-        if (activity.Type == 0)
+        // Type enum binding kontrolü - form'dan manuel al
+        if (Request.Form.ContainsKey("Type"))
         {
-            ModelState.AddModelError("Type", "Aktivite tipi seçimi zorunludur.");
-        }
-        else
-        {
-            // Type enum değeri geçerli mi kontrol et
-            if (!Enum.IsDefined(typeof(ActivityType), activity.Type))
+            var typeValue = Request.Form["Type"].ToString();
+            System.Diagnostics.Debug.WriteLine($"Form Type value: '{typeValue}'");
+            
+            if (!string.IsNullOrEmpty(typeValue) && int.TryParse(typeValue, out int parsedType) && parsedType > 0)
             {
-                ModelState.AddModelError("Type", "Geçersiz aktivite tipi seçildi.");
+                if (Enum.IsDefined(typeof(ActivityType), parsedType))
+                {
+                    activity.Type = (ActivityType)parsedType;
+                    System.Diagnostics.Debug.WriteLine($"Successfully parsed and set Type: {parsedType}");
+                    ModelState.Remove("Type"); // ModelState'den temizle
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Invalid Type value: {parsedType}");
+                    ModelState.AddModelError("Type", "Geçersiz aktivite tipi seçildi.");
+                }
             }
             else
             {
-                // Geçerli bir enum değeri ise ModelState'den Type hatasını temizle
-                if (ModelState.ContainsKey("Type"))
-                {
-                    ModelState.Remove("Type");
-                }
+                System.Diagnostics.Debug.WriteLine($"Failed to parse Type: '{typeValue}'");
+                ModelState.AddModelError("Type", "Aktivite tipi seçimi zorunludur.");
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("Type not found in Request.Form");
+            if (activity.Type == 0)
+            {
+                ModelState.AddModelError("Type", "Aktivite tipi seçimi zorunludur.");
             }
         }
 
@@ -460,7 +667,18 @@ public class AdminController : Controller
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Aktivite kaydedilirken hata oluştu: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Activity oluşturma hatası: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                // Inner exception'ı da logla
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                ModelState.AddModelError("", $"Aktivite kaydedilirken hata oluştu: {errorMessage}");
             }
         }
         else
@@ -767,7 +985,20 @@ public class AdminController : Controller
         }
 
         SetActiveMenu("appointments");
-        await _appointmentService.UpdateAppointmentStatusAsync(id, (AppointmentStatus)status);
+        
+        try
+        {
+            await _appointmentService.UpdateAppointmentStatusAsync(id, (AppointmentStatus)status);
+            TempData["Success"] = "Randevu durumu başarıyla güncellendi.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"Randevu durumu güncellenirken hata oluştu: {ex.Message}";
+        }
 
         return RedirectToAction("Appointments");
     }
@@ -787,52 +1018,38 @@ public class AdminController : Controller
         return RedirectToAction("Appointments");
     }
 
-    // Messages
-    public IActionResult Messages()
+    // AI Conversations
+    public async Task<IActionResult> AIConversations()
     {
         if (!IsAdmin())
         {
             return RedirectToLogin();
         }
 
-        SetActiveMenu("messages");
-        var model = new AdminMessagesViewModel
-        {
-            Inbox = GetMockMessages(),
-            Reply = new AdminMessageReply()
-        };
-
-        if (TempData["MessageSuccess"] is string success)
-        {
-            ViewData["MessageSuccess"] = success;
-        }
-
-        return View(model);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult ReplyMessage(AdminMessageReply reply)
-    {
-        if (!IsAdmin())
-        {
-            return RedirectToLogin();
-        }
-
-        SetActiveMenu("messages");
-
-        if (!ModelState.IsValid)
-        {
-            var model = new AdminMessagesViewModel
+        SetActiveMenu("aiconversations");
+        
+        // Tüm AI görüşmelerini getir
+        var chatMessages = await _chatMessageService.GetAllChatMessagesAsync();
+        
+        // Kullanıcıya göre grupla
+        var conversations = chatMessages
+            .GroupBy(cm => cm.MemberId)
+            .Select(g => new
             {
-                Inbox = GetMockMessages(),
-                Reply = reply
-            };
-            return View("Messages", model);
-        }
+                MemberId = g.Key,
+                MemberName = (g.First().Member?.FirstName ?? "") + " " + (g.First().Member?.LastName ?? ""),
+                MemberEmail = g.First().Member?.Email ?? "",
+                MessageCount = g.Count(),
+                LastMessageDate = g.Max(cm => cm.CreatedDate),
+                Messages = g.OrderBy(cm => cm.CreatedDate).ToList()
+            })
+            .OrderByDescending(c => c.LastMessageDate)
+            .ToList();
 
-        TempData["MessageSuccess"] = $"{reply.ToEmail} adresine yanıt gönderildi.";
-        return RedirectToAction("Messages");
+        ViewBag.Conversations = conversations;
+        ViewBag.AllMessages = chatMessages.OrderByDescending(cm => cm.CreatedDate).ToList();
+        
+        return View();
     }
 }
 

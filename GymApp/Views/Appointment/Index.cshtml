@@ -1,12 +1,206 @@
+@model IEnumerable<GymApp.Entities.Appointment>
+@using GymApp.Entities
 @{
     ViewData["Title"] = "Randevular";
+    var isAdmin = Context.Session.GetString("IsAdmin") == "true";
 }
 
-<div class="page-header">
-    <h2><i class="bi bi-calendar-check"></i> Randevular</h2>
+<div class="container px-3 px-md-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-dark mb-1"><i class="bi bi-calendar-check"></i> Randevular</h2>
+            <p class="text-muted mb-0 small">Randevularınızı görüntüleyin ve yönetin</p>
+        </div>
+        @if (!isAdmin)
+        {
+            <a href="@Url.Action("Create", "Appointment")" class="btn btn-dark">
+                <i class="bi bi-plus-circle"></i> Yeni Randevu Oluştur
+            </a>
+        }
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var appointment in Model)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="appointment-card card shadow-sm h-100 border-0">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title text-dark mb-1 fw-bold">Randevu #@appointment.Id</h5>
+                                    <p class="text-muted small mb-0">@appointment.AppointmentDate.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</p>
+                                </div>
+                                @{
+                                    var statusClass = appointment.Status switch
+                                    {
+                                        AppointmentStatus.Pending => "warning",
+                                        AppointmentStatus.Approved => "success",
+                                        AppointmentStatus.Rejected => "danger",
+                                        AppointmentStatus.Completed => "info",
+                                        _ => "secondary"
+                                    };
+                                    var statusText = appointment.Status switch
+                                    {
+                                        AppointmentStatus.Pending => "Beklemede",
+                                        AppointmentStatus.Approved => "Onaylandı",
+                                        AppointmentStatus.Rejected => "Reddedildi",
+                                        AppointmentStatus.Completed => "Tamamlandı",
+                                        _ => "Bilinmiyor"
+                                    };
+                                }
+                                <span class="badge bg-@statusClass px-3 py-2">@statusText</span>
+                            </div>
+
+                            <div class="appointment-divider mb-3"></div>
+
+                            <div class="appointment-info mb-3">
+                                <div class="info-item mb-3">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-person-fill text-dark me-2"></i>
+                                        <strong class="small text-dark">Antrenör</strong>
+                                    </div>
+                                    <p class="mb-0 text-dark">@appointment.Trainer?.FirstName @appointment.Trainer?.LastName</p>
+                                </div>
+                                
+                                <div class="info-item mb-3">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-list-check text-dark me-2"></i>
+                                        <strong class="small text-dark">Aktivite</strong>
+                                    </div>
+                                    <p class="mb-0 text-dark">@appointment.Activity?.Name</p>
+                                </div>
+                                
+                                <div class="info-item mb-3">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-building text-dark me-2"></i>
+                                        <strong class="small text-dark">Spor Salonu</strong>
+                                    </div>
+                                    <p class="mb-0 text-dark">@appointment.GymCenter?.Name</p>
+                                </div>
+                            </div>
+
+                            <div class="appointment-time-price p-3 bg-light rounded mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <i class="bi bi-clock-fill text-dark me-2"></i>
+                                        <span class="text-dark fw-bold">@appointment.AppointmentTime.ToString(@"hh\:mm")</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-muted small d-block">Toplam</span>
+                                        <span class="text-dark fw-bold fs-5">@appointment.Price.ToString("N2") ₺</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (isAdmin)
+                            {
+                                <div class="admin-info mt-3 pt-3 border-top">
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-person-circle text-muted me-2"></i>
+                                        <strong class="text-muted">Üye:</strong> 
+                                        <span class="text-dark">@appointment.Member?.FirstName @appointment.Member?.LastName</span>
+                                    </p>
+                                    <p class="mb-0 small">
+                                        <i class="bi bi-envelope text-muted me-2"></i>
+                                        <span class="text-dark">@appointment.Member?.Email</span>
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-dark text-center border-dark">
+            <i class="bi bi-info-circle"></i> Henüz randevu bulunmamaktadır.
+            <div class="mt-3">
+                <a href="@Url.Action("Create", "Appointment")" class="btn btn-dark">
+                    <i class="bi bi-plus-circle"></i> İlk Randevunuzu Oluşturun
+                </a>
+            </div>
+        </div>
+    }
 </div>
 
-<div class="page-content">
-    <h3>Hoşgeldin Randevular Sayfası</h3>
-</div>
+<style>
+    .appointment-card {
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+    
+    .appointment-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+        border-color: #000;
+    }
+    
+    .appointment-divider {
+        height: 2px;
+        background: linear-gradient(to right, #000, transparent);
+        border-radius: 2px;
+    }
+    
+    .appointment-info .info-item {
+        padding-left: 0.5rem;
+        border-left: 3px solid #f0f0f0;
+        transition: all 0.2s ease;
+    }
+    
+    .appointment-card:hover .appointment-info .info-item {
+        border-left-color: #000;
+    }
+    
+    .appointment-time-price {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+    }
+    
+    .admin-info {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 0.75rem !important;
+    }
+    
+    .btn-dark {
+        background-color: #000;
+        border-color: #000;
+        color: #fff;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-dark:hover {
+        background-color: #333;
+        border-color: #333;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .badge {
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+</style>
 

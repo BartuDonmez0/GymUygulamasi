@@ -4,9 +4,57 @@
 }
 
 <div class="container px-3 px-md-4">
-<div class="page-header mb-4">
-    <h2><i class="bi bi-building"></i> Spor Salonları</h2>
-    <p class="text-muted mb-0">Bölgenizdeki spor salonlarını keşfedin</p>
+<!-- Filtreleme Formu -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label for="dayOfWeek" class="form-label text-dark"><i class="bi bi-calendar-week"></i> Çalışma Günü</label>
+                <select class="form-select" id="dayOfWeek">
+                    <option value="">Tüm Günler</option>
+                    @{
+                        var selectedDay = ViewBag.DayOfWeek != null ? (int)ViewBag.DayOfWeek : (int?)null;
+                    }
+                    @if (selectedDay == 0) { <option value="0" selected>Pazar</option> } else { <option value="0">Pazar</option> }
+                    @if (selectedDay == 1) { <option value="1" selected>Pazartesi</option> } else { <option value="1">Pazartesi</option> }
+                    @if (selectedDay == 2) { <option value="2" selected>Salı</option> } else { <option value="2">Salı</option> }
+                    @if (selectedDay == 3) { <option value="3" selected>Çarşamba</option> } else { <option value="3">Çarşamba</option> }
+                    @if (selectedDay == 4) { <option value="4" selected>Perşembe</option> } else { <option value="4">Perşembe</option> }
+                    @if (selectedDay == 5) { <option value="5" selected>Cuma</option> } else { <option value="5">Cuma</option> }
+                    @if (selectedDay == 6) { <option value="6" selected>Cumartesi</option> } else { <option value="6">Cumartesi</option> }
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label for="activityId" class="form-label text-dark"><i class="bi bi-list-check"></i> Aktivite</label>
+                <select class="form-select" id="activityId">
+                    <option value="">Tüm Aktiviteler</option>
+                    @if (ViewBag.Activities != null)
+                    {
+                        var selectedActivityId = ViewBag.ActivityId != null ? (int)ViewBag.ActivityId : (int?)null;
+                        @foreach (var activity in (List<GymApp.Entities.Activity>)ViewBag.Activities)
+                        {
+                            @if (selectedActivityId == activity.Id)
+                            {
+                                <option value="@activity.Id" selected>@activity.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@activity.Id">@activity.Name</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-dark w-100 me-2" onclick="applyFilters()">
+                    <i class="bi bi-funnel"></i> Filtrele
+                </button>
+                <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
+                    <i class="bi bi-x-circle"></i> Temizle
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @if (Model != null && Model.Any())
@@ -64,8 +112,8 @@
                                                     {
                                                         var formattedHours = hours.Select(h => 
                                                         {
-                                                            var parts = h.Split('-');
-                                                            if (parts.Length == 2)
+                                                            var parts = h?.Split('-');
+                                                            if (parts != null && parts.Length == 2)
                                                             {
                                                                 return $"{parts[0]}:00-{parts[1]}:00";
                                                             }
@@ -374,3 +422,21 @@ else
         }
     }
 </style>
+
+<script>
+    function applyFilters() {
+        const dayOfWeek = document.getElementById('dayOfWeek').value;
+        const activityId = document.getElementById('activityId').value;
+        
+        const params = new URLSearchParams();
+        if (dayOfWeek) params.append('dayOfWeek', dayOfWeek);
+        if (activityId) params.append('activityId', activityId);
+        
+        const url = '@Url.Action("Index", "GymCenter")' + (params.toString() ? '?' + params.toString() : '');
+        window.location.href = url;
+    }
+
+    function clearFilters() {
+        window.location.href = '@Url.Action("Index", "GymCenter")';
+    }
+</script>

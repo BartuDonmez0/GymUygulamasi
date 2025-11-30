@@ -12,7 +12,7 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="CreateTrainer" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -38,6 +38,13 @@
                             <label asp-for="Phone" class="form-label">Telefon</label>
                             <input asp-for="Phone" class="form-control" />
                             <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ProfilePhotoUrl" class="form-label">Profil Fotoğrafı URL</label>
+                            <input asp-for="ProfilePhotoUrl" type="url" class="form-control" placeholder="https://example.com/photo.jpg" />
+                            <span asp-validation-for="ProfilePhotoUrl" class="text-danger"></span>
+                            <small class="form-text text-muted">Antrenörün profil fotoğrafı için bir URL giriniz (opsiyonel).</small>
                         </div>
 
                         <div class="mb-3">
@@ -90,9 +97,12 @@
                         </div>
 
                         <div class="mb-4" id="workingHoursSection" style="display: none;">
-                            <label class="form-label fw-bold">Çalışma Saatleri</label>
-                            <small class="form-text text-muted d-block mb-3">Seçilen spor salonunun çalışma saatleri içinden antrenörün çalışacağı saatleri seçiniz.</small>
+                            <label class="form-label fw-bold">Çalışma Saatleri <span class="text-danger">*</span></label>
+                            <small class="form-text text-muted d-block mb-3">Seçilen spor salonunun çalışma saatleri içinden antrenörün çalışacağı saatleri seçiniz. <strong class="text-danger">En az bir gün için çalışma saati seçilmesi zorunludur.</strong></small>
                             <input type="hidden" asp-for="WorkingHoursJson" id="workingHoursJsonInput" value="[]" />
+                            <div id="workingHoursError" class="alert alert-danger d-none mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i> <strong>Hata:</strong> En az bir gün için çalışma saati seçmeniz gerekmektedir.
+                            </div>
                             <div id="workingHoursContainer">
                                 <!-- Çalışma saatleri buraya eklenecek -->
                             </div>
@@ -147,7 +157,47 @@
         });
         
         // Spor salonları ve çalışma saatleri
-        const gymCentersData = @Html.Raw(ViewBag.GymCentersJson ?? "[]");
+        let gymCentersData = [];
+        try {
+            // ViewBag'den gelen JSON'u direkt JavaScript değişkenine ata
+            @if (ViewBag.GymCentersJson != null)
+            {
+                <text>
+                gymCentersData = @Html.Raw(ViewBag.GymCentersJson);
+                </text>
+            }
+            else
+            {
+                <text>
+                gymCentersData = [];
+                </text>
+            }
+            console.log('Yüklenen spor salonları:', gymCentersData);
+            console.log('Spor salonu sayısı:', gymCentersData.length);
+            
+            // Eğer boşsa, dropdown'dan kontrol et ve oluştur
+            if (gymCentersData.length === 0) {
+                console.warn('JSON boş, dropdown\'dan oluşturuluyor...');
+                const select = document.getElementById('gymCenterSelect');
+                if (select) {
+                    const options = Array.from(select.options).filter(opt => opt.value !== '');
+                    console.log('Dropdown seçenekleri:', options.map(opt => ({ id: opt.value, name: opt.text })));
+                    
+                    // Dropdown'dan spor salonlarını oluştur (çalışma saatleri için server'a istek gerekebilir)
+                    if (options.length > 0) {
+                        gymCentersData = options.map(opt => ({
+                            Id: parseInt(opt.value),
+                            Name: opt.text,
+                            WorkingHoursJson: "[]" // Varsayılan - çalışma saatleri için AJAX isteği yapılabilir
+                        }));
+                        console.log('Dropdown\'dan oluşturulan spor salonları:', gymCentersData);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Spor salonları yükleme hatası:', e);
+            gymCentersData = [];
+        }
         let workingHoursData = {}; // { "1": ["10-11", "11-12"], "2": ["14-15", "15-16"] }
         let selectedGymCenterHours = {}; // Seçilen spor salonunun çalışma saatleri
         
@@ -172,11 +222,43 @@
             }
             
             // Seçilen spor salonunun çalışma saatlerini bul
-            const gymCenter = gymCentersData.find(gc => gc.Id == gymCenterId);
+            const gymCenterIdNum = parseInt(gymCenterId);
+            console.log('Aranan spor salonu ID:', gymCenterIdNum);
+            console.log('Mevcut spor salonları:', gymCentersData);
+            
+            let gymCenter = gymCentersData.find(gc => {
+                const gcId = typeof gc.Id === 'string' ? parseInt(gc.Id) : gc.Id;
+                return gcId === gymCenterIdNum;
+            });
+            
+            // Eğer bulunamadıysa ve gymCentersData boşsa, dropdown'dan çalışma saatlerini almak için
+            // server'a AJAX isteği yapabiliriz, ama şimdilik basit bir çözüm:
             if (!gymCenter) {
+                console.warn('JSON\'dan spor salonu bulunamadı, dropdown kontrol ediliyor...');
+                // Dropdown'dan seçili option'ı al
+                const select = document.getElementById('gymCenterSelect');
+                const selectedOption = select ? select.options[select.selectedIndex] : null;
+                if (selectedOption && selectedOption.value === gymCenterId) {
+                    // ViewBag'den çalışma saatlerini almak için sayfayı yeniden yükleyebiliriz
+                    // veya AJAX ile çalışma saatlerini çekebiliriz
+                    // Şimdilik boş çalışma saatleri ile devam et
+                    gymCenter = {
+                        Id: gymCenterIdNum,
+                        Name: selectedOption.text,
+                        WorkingHoursJson: "[]"
+                    };
+                    console.log('Dropdown\'dan oluşturulan spor salonu:', gymCenter);
+                }
+            }
+            
+            if (!gymCenter) {
+                console.error('Spor salonu bulunamadı. ID:', gymCenterId, 'Mevcut salonlar:', gymCentersData);
+                alert('Spor salonu bulunamadı. Lütfen sayfayı yenileyin.');
                 workingHoursSection.style.display = 'none';
                 return;
             }
+            
+            console.log('Spor salonu bulundu:', gymCenter);
             
             // Çalışma saatlerini parse et
             try {
@@ -185,16 +267,33 @@
                 hoursData.forEach(item => {
                     if (item.Hours && Array.isArray(item.Hours)) {
                         selectedGymCenterHours[item.Day] = item.Hours;
+                    } else if (item.TimeRange) {
+                        // Eski format desteği - TimeRange'i Hours array'ine çevir
+                        const timeRange = item.TimeRange;
+                        const [start, end] = timeRange.split('-');
+                        const startHour = parseInt(start.split(':')[0]);
+                        const endHour = parseInt(end.split(':')[0]);
+                        const hours = [];
+                        for (let h = startHour; h < endHour; h++) {
+                            hours.push(`${h.toString().padStart(2, '0')}-${(h + 1).toString().padStart(2, '0')}`);
+                        }
+                        selectedGymCenterHours[item.Day] = hours;
                     }
                 });
+                console.log('Parse edilen çalışma saatleri:', selectedGymCenterHours);
             } catch (e) {
-                console.error('Çalışma saatleri parse hatası:', e);
+                console.error('Çalışma saatleri parse hatası:', e, 'Raw data:', gymCenter.WorkingHoursJson);
                 selectedGymCenterHours = {};
             }
             
             // Çalışma saatleri bölümünü göster ve render et
-            workingHoursSection.style.display = 'block';
-            renderWorkingHours();
+            if (Object.keys(selectedGymCenterHours).length > 0) {
+                workingHoursSection.style.display = 'block';
+                renderWorkingHours();
+            } else {
+                workingHoursSection.style.display = 'block';
+                document.getElementById('workingHoursContainer').innerHTML = '<div class="alert alert-warning">Seçilen spor salonunun çalışma saatleri tanımlanmamış.</div>';
+            }
         });
 
         // JSON'u güncelle
@@ -224,8 +323,11 @@
                 return;
             }
             
+            console.log('Render ediliyor, selectedGymCenterHours:', selectedGymCenterHours);
+            
             daysOfWeek.forEach(day => {
-                const gymCenterHours = selectedGymCenterHours[day.value] || [];
+                // Day değerini hem number hem string olarak kontrol et
+                const gymCenterHours = selectedGymCenterHours[day.value] || selectedGymCenterHours[day.value.toString()] || [];
                 if (gymCenterHours.length === 0) {
                     return; // Bu gün için spor salonu çalışmıyor
                 }
@@ -324,6 +426,12 @@
             workingHoursData[day] = selectedHours;
             updateWorkingHoursJson();
             
+            // Hata mesajını gizle (çalışma saati seçildi)
+            const errorDiv = document.getElementById('workingHoursError');
+            if (errorDiv) {
+                errorDiv.classList.add('d-none');
+            }
+            
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
             alertDiv.innerHTML = `
@@ -337,17 +445,89 @@
             }, 3000);
         }
 
-        // Form submit öncesi validasyon
+        // Sayfa yüklendiğinde eğer spor salonu seçiliyse çalışma saatlerini göster
+        // DOMContentLoaded yerine window.onload kullan çünkü script sayfanın sonunda
+        window.addEventListener('load', function() {
+            const gymCenterSelect = document.getElementById('gymCenterSelect');
+            if (gymCenterSelect && gymCenterSelect.value && gymCentersData.length > 0) {
+                console.log('Sayfa yüklendi, spor salonu seçili:', gymCenterSelect.value);
+                // Spor salonu seçiliyse change event'ini tetikle
+                gymCenterSelect.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Form submit öncesi validasyon ve tüm checkbox değişikliklerini kaydet
         document.querySelector('form').addEventListener('submit', function(e) {
+            console.log('Form submit başladı...');
+            
+            // Tüm checkbox'ları kontrol et ve workingHoursData'yı güncelle
+            document.querySelectorAll('.hour-checkbox').forEach(checkbox => {
+                const day = checkbox.getAttribute('data-day');
+                const hour = checkbox.getAttribute('data-hour');
+                
+                if (!workingHoursData[day]) {
+                    workingHoursData[day] = [];
+                }
+                
+                if (checkbox.checked) {
+                    if (!workingHoursData[day].includes(hour)) {
+                        workingHoursData[day].push(hour);
+                    }
+                } else {
+                    workingHoursData[day] = workingHoursData[day].filter(h => h !== hour);
+                }
+            });
+            
+            // JSON'u güncelle
             updateWorkingHoursJson();
+            
             const jsonInput = document.getElementById('workingHoursJsonInput');
             const data = JSON.parse(jsonInput.value || '[]');
+            const gymCenterId = document.getElementById('gymCenterSelect').value;
+            const workingHoursSection = document.getElementById('workingHoursSection');
+            const errorDiv = document.getElementById('workingHoursError');
             
-            if (data.length === 0) {
-                e.preventDefault();
-                alert('Lütfen en az bir gün için çalışma saatleri ekleyiniz.');
-                return false;
+            console.log('GymCenterId:', gymCenterId);
+            console.log('WorkingHoursJson:', jsonInput.value);
+            console.log('Parsed data length:', data.length);
+            
+            // Spor salonu seçilmişse ve çalışma saatleri bölümü görünüyorsa çalışma saatleri zorunlu
+            if (gymCenterId && gymCenterId !== '' && workingHoursSection && workingHoursSection.style.display !== 'none') {
+                // Çalışma saatleri bölümü görünüyorsa ve seçim yapılmamışsa zorunlu
+                const hasWorkingHoursOptions = document.querySelectorAll('.hour-checkbox').length > 0;
+                
+                if (hasWorkingHoursOptions && data.length === 0) {
+                    e.preventDefault();
+                    console.error('Çalışma saati seçilmedi, form submit engellendi');
+                    // Hata mesajını göster
+                    if (errorDiv) {
+                        errorDiv.classList.remove('d-none');
+                    }
+                    // Çalışma saatleri bölümünü göster
+                    if (workingHoursSection) {
+                        workingHoursSection.style.display = 'block';
+                    }
+                    // Sayfayı çalışma saatleri bölümüne kaydır
+                    workingHoursSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                } else {
+                    // Hata mesajını gizle
+                    if (errorDiv) {
+                        errorDiv.classList.add('d-none');
+                    }
+                    if (data.length > 0) {
+                        console.log('Çalışma saatleri seçildi, form submit ediliyor...');
+                    } else {
+                        console.log('Çalışma saatleri seçenekleri yok, form submit ediliyor...');
+                    }
+                }
+            } else {
+                console.log('Spor salonu seçilmedi veya çalışma saatleri bölümü görünmüyor, form submit ediliyor...');
             }
+            
+            // Form submit ediliyor
+            console.log('Form submit onaylandı');
+            return true;
         });
     </script>
 }

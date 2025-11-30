@@ -26,6 +26,7 @@ public class TrainerRepository : Repository<Trainer>, ITrainerRepository
     {
         return await _dbSet
             .Include(t => t.WorkingHours)
+            .Include(t => t.GymCenter)
             .Include(t => t.TrainerActivities)
                 .ThenInclude(ta => ta.Activity)
             .ToListAsync();
@@ -42,6 +43,7 @@ public class TrainerRepository : Repository<Trainer>, ITrainerRepository
     {
         return await _dbSet
             .Include(t => t.WorkingHours)
+            .Include(t => t.GymCenter)
             .Include(t => t.TrainerActivities)
                 .ThenInclude(ta => ta.Activity)
             .FirstOrDefaultAsync(t => t.Id == id);

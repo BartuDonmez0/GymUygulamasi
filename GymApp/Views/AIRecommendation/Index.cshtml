@@ -1,12 +1,393 @@
 @{
     ViewData["Title"] = "AI Önerileri";
+    var chatMessages = ViewBag.ChatMessages as IEnumerable<GymApp.Entities.ChatMessage> ?? new List<GymApp.Entities.ChatMessage>();
+    var memberId = ViewBag.MemberId as int?;
 }
 
-<div class="page-header">
-    <h2><i class="bi bi-robot"></i> AI Önerileri</h2>
+<div class="container px-3 px-md-4">
+    <div class="mb-4">
+        <h2 class="text-dark mb-1"><i class="bi bi-robot"></i> AI Fitness Danışmanı</h2>
+        <p class="text-muted mb-0 small">Yapay zeka destekli fitness ve sağlık danışmanınızla sohbet edin</p>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>Bilgileriniz</h5>
+                </div>
+                <div class="card-body">
+                    <form id="userInfoForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Vücut Tipi</label>
+                            <select class="form-select" id="bodyTypeSelect">
+                                <option value="">Seçiniz</option>
+                                <option value="Ektomorf">Ektomorf (Zayıf, uzun)</option>
+                                <option value="Mezomorf">Mezomorf (Kaslı, atletik)</option>
+                                <option value="Endomorf">Endomorf (Yuvarlak, yumuşak)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Boy (cm)</label>
+                            <input type="number" class="form-control" id="heightInput" placeholder="Örn: 175" min="100" max="250">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Kilo (kg)</label>
+                            <input type="number" class="form-control" id="weightInput" placeholder="Örn: 70" min="30" max="200" step="0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fotoğraf Açıklaması (Opsiyonel)</label>
+                            <textarea class="form-control" id="photoDescriptionInput" rows="3" placeholder="Fotoğrafınızı yükleyemiyorsanız, vücut yapınızı kısaca açıklayın..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fotoğraf Yükle (Opsiyonel)</label>
+                            <input type="file" class="form-control" id="photoInput" accept="image/*">
+                            <small class="text-muted">Fotoğraf yüklendiğinde AI tarafından analiz edilecektir.</small>
+                        </div>
+                        <button type="button" class="btn btn-dark w-100" onclick="saveUserInfo()">
+                            <i class="bi bi-save"></i> Bilgileri Kaydet
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Hızlı Öneriler</h5>
+                </div>
+                <div class="card-body">
+                    <button type="button" class="btn btn-outline-dark w-100 mb-2" onclick="getQuickRecommendation('exercise')">
+                        <i class="bi bi-activity"></i> Egzersiz Planı Öner
+                    </button>
+                    <button type="button" class="btn btn-outline-dark w-100 mb-2" onclick="getQuickRecommendation('diet')">
+                        <i class="bi bi-cup-straw"></i> Diyet Planı Öner
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0 chat-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>AI Danışman</h5>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="clearChat()">
+                        <i class="bi bi-trash"></i> Temizle
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="chatMessages" class="chat-messages">
+                        @if (!chatMessages.Any())
+                        {
+                            <div class="text-center p-4 text-muted">
+                                <i class="bi bi-chat-quote fs-1 d-block mb-3"></i>
+                                <p>Merhaba! Size nasıl yardımcı olabilirim?</p>
+                                <p class="small">Egzersiz planı, diyet önerileri veya sağlık sorularınız için bana sorabilirsiniz.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var msg in chatMessages)
+                            {
+                                <div class="message user-message">
+                                    <div class="message-content">
+                                        <strong>Sen:</strong> @msg.Message
+                                        <small class="text-muted d-block">@msg.CreatedDate.ToString("dd.MM.yyyy HH:mm")</small>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(msg.Response))
+                                {
+                                    <div class="message ai-message">
+                                        <div class="message-content">
+                                            <strong><i class="bi bi-robot"></i> AI:</strong>
+                                            <div class="ai-response">@Html.Raw(msg.Response.Replace("\n", "<br>"))</div>
+                                            <small class="text-muted d-block">@msg.CreatedDate.ToString("dd.MM.yyyy HH:mm")</small>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+                    </div>
+                    <div class="chat-input p-3 border-top">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="messageInput" placeholder="Mesajınızı yazın..." onkeypress="handleKeyPress(event)">
+                            <button class="btn btn-dark" type="button" onclick="sendMessage()">
+                                <i class="bi bi-send"></i> Gönder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="page-content">
-    <h3>Hoşgeldin AI Önerileri Sayfası</h3>
-</div>
+<style>
+    .chat-card {
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+    }
 
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        max-height: 500px;
+        background-color: #f8f9fa;
+    }
+
+    .message {
+        margin-bottom: 1rem;
+        animation: fadeIn 0.3s;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-message {
+        text-align: right;
+    }
+
+    .user-message .message-content {
+        display: inline-block;
+        background-color: #000;
+        color: #fff;
+        padding: 0.75rem 1rem;
+        border-radius: 15px 15px 0 15px;
+        max-width: 70%;
+        text-align: left;
+    }
+
+    .ai-message {
+        text-align: left;
+    }
+
+    .ai-message .message-content {
+        display: inline-block;
+        background-color: #fff;
+        color: #000;
+        padding: 0.75rem 1rem;
+        border-radius: 15px 15px 15px 0;
+        max-width: 70%;
+        border: 1px solid #dee2e6;
+    }
+
+    .ai-response {
+        margin-top: 0.5rem;
+        line-height: 1.6;
+    }
+
+    .chat-input {
+        background-color: #fff;
+    }
+
+    .chat-input input:focus {
+        border-color: #000;
+        box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+    }
+</style>
+
+<script>
+    let userInfo = {
+        bodyType: '',
+        height: null,
+        weight: null,
+        photoDescription: '',
+        photoFile: null
+    };
+
+    function saveUserInfo() {
+        userInfo.bodyType = document.getElementById('bodyTypeSelect').value;
+        const height = document.getElementById('heightInput').value;
+        const weight = document.getElementById('weightInput').value;
+        userInfo.height = height ? parseFloat(height) : null;
+        userInfo.weight = weight ? parseFloat(weight) : null;
+        userInfo.photoDescription = document.getElementById('photoDescriptionInput').value;
+        
+        const photoInput = document.getElementById('photoInput');
+        userInfo.photoFile = photoInput.files.length > 0 ? photoInput.files[0] : null;
+        
+        alert('Bilgileriniz kaydedildi!');
+    }
+
+    // Fotoğraf input değiştiğinde
+    document.getElementById('photoInput')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            userInfo.photoFile = file;
+            // Önizleme göster (opsiyonel)
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Önizleme için bir img elementi eklenebilir
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    async function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value.trim();
+        
+        if (!message) {
+            return;
+        }
+
+        // Kullanıcı mesajını ekle
+        addMessageToChat('user', message);
+        messageInput.value = '';
+
+        // Loading göster
+        const loadingId = addMessageToChat('ai', 'Yanıt hazırlanıyor...', true);
+
+        try {
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('bodyType', userInfo.bodyType || '');
+            if (userInfo.height) formData.append('height', userInfo.height);
+            if (userInfo.weight) formData.append('weight', userInfo.weight);
+            formData.append('photoDescription', userInfo.photoDescription || '');
+            if (userInfo.photoFile) {
+                formData.append('photoFile', userInfo.photoFile);
+            }
+
+            const response = await fetch('/AIRecommendation/SendMessage', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            // Loading mesajını kaldır
+            removeMessage(loadingId);
+
+            if (data.success) {
+                // Rate limit kontrolü
+                if (data.response && (data.response.includes('429') || data.response.includes('Too Many Requests') || data.response.includes('çok fazla istek'))) {
+                    addMessageToChat('ai', data.response);
+                    // Kullanıcıya ek bilgi göster
+                    setTimeout(() => {
+                        addMessageToChat('ai', '💡 İpucu: Rate limit hatası aldıysanız, lütfen 1-2 dakika bekleyip tekrar deneyin. OpenAI API\'si dakikada belirli sayıda istek kabul eder.');
+                    }, 2000);
+                } else {
+                    addMessageToChat('ai', data.response);
+                }
+            } else {
+                addMessageToChat('ai', 'Üzgünüm, bir hata oluştu: ' + (data.message || 'Bilinmeyen hata'));
+            }
+        } catch (error) {
+            removeMessage(loadingId);
+            let errorMessage = 'Bağlantı hatası: ' + error.message;
+            if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+                errorMessage = 'Çok fazla istek gönderildi. Lütfen birkaç dakika bekleyip tekrar deneyin.';
+            }
+            addMessageToChat('ai', errorMessage);
+        }
+    }
+
+    async function getQuickRecommendation(type) {
+        const message = type === 'exercise' ? 'Egzersiz planı öner' : 'Diyet planı öner';
+        
+        // Loading göster
+        const loadingId = addMessageToChat('ai', 'Öneri hazırlanıyor...', true);
+
+        try {
+            const endpoint = type === 'exercise' 
+                ? '/AIRecommendation/GetExerciseRecommendation'
+                : '/AIRecommendation/GetDietRecommendation';
+
+            const formData = new FormData();
+            formData.append('bodyType', userInfo.bodyType || 'Belirtilmemiş');
+            if (userInfo.height) formData.append('height', userInfo.height);
+            if (userInfo.weight) formData.append('weight', userInfo.weight);
+            formData.append('photoDescription', userInfo.photoDescription || '');
+            if (userInfo.photoFile) {
+                formData.append('photoFile', userInfo.photoFile);
+            }
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            // Loading mesajını kaldır
+            removeMessage(loadingId);
+
+            if (data.success) {
+                addMessageToChat('user', message);
+                addMessageToChat('ai', data.response);
+            } else {
+                addMessageToChat('ai', 'Üzgünüm, bir hata oluştu: ' + (data.message || 'Bilinmeyen hata'));
+            }
+        } catch (error) {
+            removeMessage(loadingId);
+            addMessageToChat('ai', 'Bağlantı hatası: ' + error.message);
+        }
+    }
+
+    function addMessageToChat(type, content, isLoading = false) {
+        const chatMessages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        const messageId = 'msg-' + Date.now();
+        messageDiv.id = messageId;
+        messageDiv.className = `message ${type}-message`;
+        
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        
+        if (type === 'user') {
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <strong>Sen:</strong> ${escapeHtml(content)}
+                    <small class="text-muted d-block">${timeStr}</small>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <strong><i class="bi bi-robot"></i> AI:</strong>
+                    <div class="ai-response">${isLoading ? escapeHtml(content) : content.replace(/\n/g, '<br>')}</div>
+                    <small class="text-muted d-block">${timeStr}</small>
+                </div>
+            `;
+        }
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return messageId;
+    }
+
+    function removeMessage(messageId) {
+        const message = document.getElementById(messageId);
+        if (message) {
+            message.remove();
+        }
+    }
+
+    function clearChat() {
+        if (confirm('Tüm sohbet geçmişini temizlemek istediğinize emin misiniz?')) {
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="text-center p-4 text-muted">
+                    <i class="bi bi-chat-quote fs-1 d-block mb-3"></i>
+                    <p>Merhaba! Size nasıl yardımcı olabilirim?</p>
+                </div>
+            `;
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>

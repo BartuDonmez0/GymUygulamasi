@@ -10,5 +10,6 @@ public interface IGymCenterRepository : IRepository<GymCenter>
     Task<GymCenter?> GetFullDetailsAsync(int id);
     Task<GymCenter?> GetWithWorkingHoursAsync(int id);
     Task<IEnumerable<GymCenter>> GetAllWithWorkingHoursAsync();
+    Task<IEnumerable<GymCenter>> GetFilteredAsync(int? dayOfWeek, int? activityId);
 }
 

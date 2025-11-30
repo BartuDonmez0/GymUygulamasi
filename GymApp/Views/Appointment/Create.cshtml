@@ -1,0 +1,621 @@
+@model GymApp.Entities.Appointment
+@using GymApp.Entities
+@{
+    ViewData["Title"] = "Yeni Randevu Oluştur";
+    var trainers = ViewBag.Trainers as IEnumerable<Trainer> ?? new List<Trainer>();
+    var activities = ViewBag.Activities as IEnumerable<Activity> ?? new List<Activity>();
+    var gymCenters = ViewBag.GymCenters as IEnumerable<GymCenter> ?? new List<GymCenter>();
+    var selectedTrainerId = ViewBag.SelectedTrainerId as int?;
+}
+
+<div class="container px-3 px-md-4">
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-2">
+            <a href="@Url.Action("Index", "Appointment")" class="btn btn-link text-dark p-0 me-3">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </a>
+            <div>
+                <h2 class="text-dark mb-1"><i class="bi bi-calendar-plus"></i> Yeni Randevu Oluştur</h2>
+                <p class="text-muted mb-0 small">Randevu bilgilerinizi doldurun ve antrenörünüzle randevu alın</p>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12 col-lg-9 mx-auto">
+            <div class="card shadow-sm border-0 appointment-form-card">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Randevu Bilgileri</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post" id="appointmentForm" onsubmit="return validateAppointment()">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+                        <div id="availabilityError" class="alert alert-danger d-none" role="alert">
+                            <i class="bi bi-exclamation-circle"></i> <span id="availabilityErrorMessage"></span>
+                        </div>
+
+                        <input type="hidden" asp-for="MemberId" value="@ViewBag.MemberId" />
+                        
+                        <div class="form-section mb-4">
+                            <h6 class="section-title mb-3">
+                                <i class="bi bi-person-badge me-2"></i>Antrenör Seçimi
+                            </h6>
+
+                            <div class="mb-3">
+                                <label asp-for="TrainerId" class="form-label text-dark fw-bold">
+                                    Antrenör <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="TrainerId" class="form-select form-select-lg" id="trainerSelect" required autocomplete="off">
+                                    <option value="">Antrenör Seçiniz</option>
+                                    @foreach (var trainer in trainers)
+                                    {
+                                        @if (selectedTrainerId.HasValue && selectedTrainerId.Value == trainer.Id)
+                                        {
+                                            <option value="@trainer.Id" selected data-trainer-id="@trainer.Id">@trainer.FirstName @trainer.LastName - @trainer.Email</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@trainer.Id" data-trainer-id="@trainer.Id">@trainer.FirstName @trainer.LastName - @trainer.Email</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="TrainerId" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ActivityId" class="form-label text-dark fw-bold">
+                                    Aktivite <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="ActivityId" class="form-select form-select-lg" id="activitySelect" required disabled>
+                                    <option value="">Önce antrenör seçiniz</option>
+                                </select>
+                                <span asp-validation-for="ActivityId" class="text-danger"></span>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Antrenör seçildikten sonra aktiviteler görünecektir.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="GymCenterId" class="form-label text-dark fw-bold">
+                                    Spor Salonu <span class="text-danger">*</span>
+                                </label>
+                                <input type="hidden" asp-for="GymCenterId" id="gymCenterIdInput" />
+                                <input type="text" class="form-control form-control-lg" id="gymCenterNameInput" readonly 
+                                       placeholder="Aktivite seçildikten sonra otomatik doldurulacaktır" />
+                                <span asp-validation-for="GymCenterId" class="text-danger"></span>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Aktivite seçildikten sonra spor salonu otomatik olarak doldurulacaktır.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-section mb-4">
+                            <h6 class="section-title mb-3">
+                                <i class="bi bi-calendar-event me-2"></i>Tarih ve Saat
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label asp-for="AppointmentDate" class="form-label text-dark fw-bold">
+                                        Tarih <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="AppointmentDate" type="date" class="form-control form-control-lg" id="appointmentDateInput"
+                                           min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                    <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>Antrenörün müsait olduğu günleri seçebilirsiniz.
+                                    </small>
+                                </div>
+
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label asp-for="AppointmentTime" class="form-label text-dark fw-bold">
+                                        Saat <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-lg" id="appointmentTimeSelect" required disabled>
+                                        <option value="">Önce tarih seçiniz</option>
+                                    </select>
+                                    <input type="hidden" asp-for="AppointmentTime" id="appointmentTimeInput" />
+                                    <span asp-validation-for="AppointmentTime" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>Seçilen günde antrenörün müsait olduğu saatler görünecektir.
+                                    </small>
+                                    <div id="timeWarning" class="alert alert-warning mt-2 d-none" role="alert">
+                                        <i class="bi bi-exclamation-triangle"></i> <span id="timeWarningMessage"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section mb-4">
+                            <h6 class="section-title mb-3">
+                                <i class="bi bi-currency-dollar me-2"></i>Fiyat Bilgisi
+                            </h6>
+                            <div class="mb-3">
+                                <label asp-for="Price" class="form-label text-dark fw-bold">
+                                    Toplam Fiyat <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <input asp-for="Price" type="number" step="0.01" min="0" class="form-control" id="priceInput" required readonly />
+                                    <span class="input-group-text bg-light">₺</span>
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Aktivite seçildiğinde fiyat otomatik olarak doldurulacaktır.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="@Url.Action("Index", "Appointment")" class="btn btn-outline-dark btn-lg">
+                                <i class="bi bi-arrow-left"></i> İptal
+                            </a>
+                            <button type="submit" class="btn btn-dark btn-lg px-4">
+                                <i class="bi bi-check-circle"></i> Randevu Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .appointment-form-card {
+        border-radius: 15px;
+        border: 1px solid #dee2e6;
+        overflow: hidden;
+    }
+    
+    .appointment-form-card .card-header {
+        border-bottom: 2px solid rgba(255,255,255,0.1);
+    }
+    
+    .form-section {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border-left: 4px solid #000;
+    }
+    
+    .section-title {
+        color: #000;
+        font-weight: 600;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 1rem;
+    }
+    
+    .form-select:focus,
+    .form-control:focus {
+        border-color: #000;
+        box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+    }
+    
+    .form-select-lg,
+    .form-control-lg {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .input-group-text {
+        border-color: #dee2e6;
+        color: #000;
+        font-weight: 600;
+    }
+
+    .btn-dark {
+        background-color: #000;
+        border-color: #000;
+        color: #fff;
+        transition: all 0.3s ease;
+    }
+
+    .btn-dark:hover {
+        background-color: #333;
+        border-color: #333;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-outline-dark {
+        border-color: #000;
+        color: #000;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-dark:hover {
+        background-color: #000;
+        border-color: #000;
+        color: #fff;
+    }
+    
+    .btn-link {
+        text-decoration: none;
+    }
+    
+    .btn-link:hover {
+        color: #333 !important;
+    }
+    
+    .option-booked {
+        color: #dc3545;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    let trainerData = null;
+    let availableTimes = [];
+    let bookedTimes = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const trainerSelect = document.getElementById('trainerSelect');
+        const activitySelect = document.getElementById('activitySelect');
+        const priceInput = document.getElementById('priceInput');
+        const gymCenterIdInput = document.getElementById('gymCenterIdInput');
+        const gymCenterNameInput = document.getElementById('gymCenterNameInput');
+        const appointmentDateInput = document.getElementById('appointmentDateInput');
+        const appointmentTimeSelect = document.getElementById('appointmentTimeSelect');
+        const timeWarning = document.getElementById('timeWarning');
+        const timeWarningMessage = document.getElementById('timeWarningMessage');
+
+        // Antrenör seçildiğinde aktiviteleri yükle
+        async function loadTrainerData(trainerId) {
+            if (!trainerId) {
+                resetForm();
+                return;
+            }
+
+            try {
+                console.log('Loading trainer data for ID:', trainerId);
+                activitySelect.disabled = true;
+                activitySelect.innerHTML = '<option value="">Yükleniyor...</option>';
+                gymCenterNameInput.value = '';
+                gymCenterIdInput.value = '';
+                priceInput.value = '';
+                
+                const response = await fetch(`/Appointment/GetTrainerData?trainerId=${trainerId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Trainer data received:', data);
+
+                if (data.success) {
+                    trainerData = data;
+
+                    // Aktiviteleri doldur
+                    activitySelect.innerHTML = '<option value="">Aktivite Seçiniz</option>';
+                    
+                    if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
+                        data.activities.forEach(activity => {
+                            const option = document.createElement('option');
+                            option.value = activity.id;
+                            option.textContent = `${activity.name} - ${activity.price.toFixed(2)} ₺`;
+                            option.dataset.price = activity.price;
+                            option.dataset.gymCenterId = data.gymCenterId;
+                            option.dataset.gymCenterName = data.gymCenterName;
+                            activitySelect.appendChild(option);
+                        });
+                        activitySelect.disabled = false;
+                        console.log('Activities loaded, dropdown enabled');
+                    } else {
+                        activitySelect.innerHTML = '<option value="">Bu antrenörün aktivitesi bulunmamaktadır</option>';
+                        activitySelect.disabled = true;
+                    }
+
+                    // Tarih ve saat seçimini sıfırla
+                    appointmentTimeSelect.innerHTML = '<option value="">Önce tarih seçiniz</option>';
+                    appointmentTimeSelect.disabled = true;
+                    appointmentDateInput.value = '';
+                } else {
+                    activitySelect.innerHTML = '<option value="">Hata</option>';
+                    activitySelect.disabled = true;
+                    alert(data.message || 'Antrenör bilgileri alınamadı.');
+                }
+            } catch (error) {
+                console.error('Error fetching trainer data:', error);
+                activitySelect.innerHTML = '<option value="">Hata oluştu</option>';
+                activitySelect.disabled = true;
+                alert('Antrenör bilgileri alınırken bir hata oluştu: ' + error.message);
+            }
+        }
+
+        function resetForm() {
+            activitySelect.innerHTML = '<option value="">Önce antrenör seçiniz</option>';
+            activitySelect.disabled = true;
+            priceInput.value = '';
+            gymCenterIdInput.value = '';
+            gymCenterNameInput.value = '';
+            appointmentTimeSelect.innerHTML = '<option value="">Önce tarih seçiniz</option>';
+            appointmentTimeSelect.disabled = true;
+            trainerData = null;
+            timeWarning.classList.add('d-none');
+        }
+
+        // Antrenör değiştiğinde
+        trainerSelect.addEventListener('change', function() {
+            const trainerId = trainerSelect.value;
+            console.log('Trainer select changed to:', trainerId);
+            loadTrainerData(trainerId);
+        });
+
+        // Aktivite seçildiğinde fiyat ve spor salonunu doldur
+        activitySelect.addEventListener('change', function() {
+            const selectedOption = activitySelect.options[activitySelect.selectedIndex];
+            if (selectedOption.value && selectedOption.dataset.price) {
+                priceInput.value = selectedOption.dataset.price;
+                gymCenterIdInput.value = selectedOption.dataset.gymCenterId || '';
+                gymCenterNameInput.value = selectedOption.dataset.gymCenterName || '';
+                console.log('Activity selected, price and gym center set');
+            } else {
+                priceInput.value = '';
+                gymCenterIdInput.value = '';
+                gymCenterNameInput.value = '';
+            }
+        });
+
+        // Tarih seçildiğinde müsait saatleri göster
+        appointmentDateInput.addEventListener('change', async function() {
+            const selectedDate = appointmentDateInput.value;
+            if (!selectedDate || !trainerData) {
+                appointmentTimeSelect.innerHTML = '<option value="">Önce antrenör ve tarih seçiniz</option>';
+                appointmentTimeSelect.disabled = true;
+                timeWarning.classList.add('d-none');
+                return;
+            }
+
+            const date = new Date(selectedDate);
+            const dayOfWeek = date.getDay(); // 0 = Pazar, 1 = Pazartesi, ...
+
+            // Antrenörün bu gün için müsait saatlerini bul
+            availableTimes = [];
+            trainerData.workingHours.forEach(wh => {
+                if (wh.day === dayOfWeek) {
+                    if (wh.hour) {
+                        const hourParts = wh.hour.split('-');
+                        if (hourParts.length === 2) {
+                            const startTime = hourParts[0].trim();
+                            const endTime = hourParts[1].trim();
+                            const start = parseTime(startTime);
+                            const end = parseTime(endTime);
+                            let current = start;
+                            while (current <= end) {
+                                availableTimes.push(formatTime(current));
+                                current = addHour(current);
+                            }
+                        } else {
+                            availableTimes.push(hourParts[0].trim());
+                        }
+                    } else if (wh.timeRange) {
+                        const timeParts = wh.timeRange.split('-');
+                        if (timeParts.length === 2) {
+                            const startTime = timeParts[0].trim();
+                            const endTime = timeParts[1].trim();
+                            const start = parseTime(startTime);
+                            const end = parseTime(endTime);
+                            let current = start;
+                            while (current <= end) {
+                                availableTimes.push(formatTime(current));
+                                current = addHour(current);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // O tarihte rezerve edilmiş saatleri kontrol et
+            const trainerId = trainerSelect.value;
+            try {
+                const bookedResponse = await fetch(`/Appointment/GetBookedTimes?trainerId=${trainerId}&date=${selectedDate}`);
+                const bookedData = await bookedResponse.json();
+                bookedTimes = bookedData.bookedTimes || [];
+
+                // Saat seçeneklerini doldur
+                appointmentTimeSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
+                if (availableTimes.length > 0) {
+                    // Onaylı randevu olan saatleri filtrele
+                    const availableTimesFiltered = availableTimes.filter(time => {
+                        const normalizedTime = time.length === 5 ? time : time.padStart(5, '0');
+                        return !bookedTimes.some(bt => {
+                            const normalizedBooked = bt.length === 5 ? bt : bt.padStart(5, '0');
+                            return normalizedTime === normalizedBooked;
+                        });
+                    });
+                    
+                    // Tüm saatleri göster ama onaylı randevu olanları işaretle
+                    availableTimes.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        const normalizedTime = time.length === 5 ? time : time.padStart(5, '0');
+                        const isBooked = bookedTimes.some(bt => {
+                            const normalizedBooked = bt.length === 5 ? bt : bt.padStart(5, '0');
+                            return normalizedTime === normalizedBooked;
+                        });
+                        
+                        if (isBooked) {
+                            option.textContent = `${time} - Onaylı Randevu Var (Seçilemez)`;
+                            option.disabled = true;
+                            option.classList.add('option-booked');
+                        } else {
+                            option.textContent = time;
+                        }
+                        appointmentTimeSelect.appendChild(option);
+                    });
+                    
+                    if (availableTimesFiltered.length > 0) {
+                        appointmentTimeSelect.disabled = false;
+                    } else {
+                        appointmentTimeSelect.innerHTML = '<option value="">Bu gün için müsait saat bulunmamaktadır (Tüm saatler onaylı randevu ile dolu)</option>';
+                        appointmentTimeSelect.disabled = true;
+                    }
+                } else {
+                    appointmentTimeSelect.innerHTML = '<option value="">Bu gün için müsait saat bulunmamaktadır</option>';
+                    appointmentTimeSelect.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error fetching booked times:', error);
+                appointmentTimeSelect.innerHTML = '<option value="">Saat Seçiniz</option>';
+                if (availableTimes.length > 0) {
+                    availableTimes.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        appointmentTimeSelect.appendChild(option);
+                    });
+                    appointmentTimeSelect.disabled = false;
+                } else {
+                    appointmentTimeSelect.innerHTML = '<option value="">Bu gün için müsait saat bulunmamaktadır</option>';
+                    appointmentTimeSelect.disabled = true;
+                }
+            }
+        });
+
+        // Saat seçildiğinde kontrol et ve uyarı göster
+        appointmentTimeSelect.addEventListener('change', async function() {
+            const selectedTime = appointmentTimeSelect.value;
+            timeWarning.classList.add('d-none');
+            
+            if (selectedTime) {
+                document.getElementById('appointmentTimeInput').value = selectedTime + ':00';
+                
+                // Seçilen saatin onaylı randevu olup olmadığını kontrol et
+                const normalizedTime = selectedTime.length === 5 ? selectedTime : selectedTime.padStart(5, '0');
+                const isBooked = bookedTimes.some(bt => {
+                    const normalizedBooked = bt.length === 5 ? bt : bt.padStart(5, '0');
+                    return normalizedTime === normalizedBooked;
+                });
+                
+                if (isBooked) {
+                    timeWarningMessage.textContent = 'Bu saatte onaylı bir randevu bulunmaktadır. Lütfen başka bir saat seçiniz.';
+                    timeWarning.classList.remove('d-none');
+                    appointmentTimeSelect.value = '';
+                    document.getElementById('appointmentTimeInput').value = '';
+                } else {
+                    // Ek kontrol: Backend'de de kontrol et
+                    const trainerId = trainerSelect.value;
+                    const selectedDate = appointmentDateInput.value;
+                    const timeString = selectedTime;
+                    
+                    try {
+                        const trainerResponse = await fetch(`/Appointment/CheckAvailability?trainerId=${trainerId}&date=${selectedDate}&time=${timeString}`);
+                        const trainerData = await trainerResponse.json();
+                        
+                        if (trainerData.exists) {
+                            timeWarningMessage.textContent = 'Bu saatte antrenör için zaten onaylanmış bir randevu mevcut. Lütfen başka bir saat seçin.';
+                            timeWarning.classList.remove('d-none');
+                            appointmentTimeSelect.value = '';
+                            document.getElementById('appointmentTimeInput').value = '';
+                            return;
+                        }
+                        
+                        const memberResponse = await fetch(`/Appointment/CheckMemberAvailability?date=${selectedDate}&time=${timeString}`);
+                        const memberData = await memberResponse.json();
+                        
+                        if (memberData.exists) {
+                            timeWarningMessage.textContent = 'Bu saatte zaten onaylanmış bir randevunuz bulunmaktadır. Lütfen başka bir saat seçin.';
+                            timeWarning.classList.remove('d-none');
+                            appointmentTimeSelect.value = '';
+                            document.getElementById('appointmentTimeInput').value = '';
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error checking availability:', error);
+                    }
+                }
+            } else {
+                document.getElementById('appointmentTimeInput').value = '';
+            }
+        });
+
+        // Yardımcı fonksiyonlar
+        function parseTime(timeStr) {
+            const parts = timeStr.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
+        }
+
+        function formatTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        function addHour(minutes) {
+            return minutes + 60;
+        }
+
+        // Sayfa yüklendiğinde antrenör seçiliyse verileri yükle
+        function initializeTrainerData() {
+            if (trainerSelect && trainerSelect.value) {
+                console.log('Initializing trainer data for:', trainerSelect.value);
+                loadTrainerData(trainerSelect.value);
+            }
+        }
+        
+        setTimeout(function() {
+            initializeTrainerData();
+        }, 300);
+        
+        window.addEventListener('load', function() {
+            setTimeout(initializeTrainerData, 100);
+        });
+    });
+
+    // Form submit edilmeden önce kontrol
+    async function validateAppointment() {
+        const form = document.getElementById('appointmentForm');
+        const trainerId = document.getElementById('trainerSelect').value;
+        const appointmentDate = document.getElementById('appointmentDateInput').value;
+        const appointmentTime = document.getElementById('appointmentTimeInput').value;
+        const errorDiv = document.getElementById('availabilityError');
+        const errorMessage = document.getElementById('availabilityErrorMessage');
+        
+        if (!trainerId || !appointmentDate || !appointmentTime) {
+            return true;
+        }
+        
+        const timeParts = appointmentTime.split(':');
+        const timeString = timeParts[0] + ':' + timeParts[1];
+        
+        try {
+            const trainerResponse = await fetch(`/Appointment/CheckAvailability?trainerId=${trainerId}&date=${appointmentDate}&time=${timeString}`);
+            const trainerData = await trainerResponse.json();
+            
+            if (trainerData.exists) {
+                errorMessage.textContent = 'Bu saatte antrenör için zaten onaylanmış bir randevu mevcut. Lütfen başka bir saat seçin.';
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            const memberResponse = await fetch(`/Appointment/CheckMemberAvailability?date=${appointmentDate}&time=${timeString}`);
+            const memberData = await memberResponse.json();
+            
+            if (memberData.exists) {
+                errorMessage.textContent = 'Bu saatte zaten onaylanmış bir randevunuz bulunmaktadır. Lütfen başka bir saat seçin.';
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            errorDiv.classList.add('d-none');
+            return true;
+        } catch (error) {
+            console.error('Error checking availability:', error);
+            return true;
+        }
+    }
+</script>

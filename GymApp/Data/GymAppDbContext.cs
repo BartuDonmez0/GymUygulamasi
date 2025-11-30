@@ -82,6 +82,7 @@ public class GymAppDbContext : DbContext
             entity.Property(t => t.Password).HasColumnName("password");
             entity.Property(t => t.GymCenterId).HasColumnName("gym_center_id");
             entity.Property(t => t.WorkingHoursJson).HasColumnName("working_hours_json").HasDefaultValue("[]");
+            entity.Property(t => t.ProfilePhotoUrl).HasColumnName("profile_photo_url").HasDefaultValue("");
             entity.HasOne(t => t.GymCenter)
                 .WithMany(g => g.Trainers)
                 .HasForeignKey(t => t.GymCenterId)
