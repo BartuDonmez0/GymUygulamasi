@@ -1,0 +1,210 @@
+@model GymApp.Entities.Activity
+@{
+    ViewData["Title"] = "Yeni Aktivite Ekle";
+    var gymCenters = ViewBag.GymCenters as List<GymApp.Entities.GymCenter> ?? new List<GymApp.Entities.GymCenter>();
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="mb-0"><i class="bi bi-plus-circle"></i> Yeni Aktivite Ekle</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateActivity" method="post" id="createActivityForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="GymCenterId" class="form-label">Spor Salonu <span class="text-danger">*</span></label>
+                            <select asp-for="GymCenterId" 
+                                    name="GymCenterId" 
+                                    id="GymCenterId" 
+                                    class="form-select" 
+                                    required
+                                    data-val="true"
+                                    data-val-required="Spor salonu seçimi zorunludur.">
+                                <option value="">-- Spor Salonu Seçiniz --</option>
+                                @if (gymCenters != null && gymCenters.Any())
+                                {
+                                    @foreach (var gymCenter in gymCenters)
+                                    {
+                                        <option value="@gymCenter.Id">@gymCenter.Name</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="" disabled>Henüz spor salonu eklenmemiş</option>
+                                }
+                            </select>
+                            <span asp-validation-for="GymCenterId" class="text-danger"></span>
+                            @if (gymCenters == null || !gymCenters.Any())
+                            {
+                                <small class="text-warning">Önce bir spor salonu eklemeniz gerekiyor.</small>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Aktivite Adı</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Açıklama</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Type" class="form-label">Aktivite Tipi</label>
+                            <select asp-for="Type" class="form-select" required>
+                                <option value="">Aktivite Tipi Seçiniz</option>
+                                @{
+                                    var activityTypes = new Dictionary<int, string>
+                                    {
+                                        { 1, "Fitness" }, { 2, "Yoga" }, { 3, "Pilates" }, { 4, "Crossfit" }, { 5, "Zumba" },
+                                        { 6, "Spinning" }, { 7, "Kickboxing" }, { 8, "Kişisel Antrenman" }, { 9, "Grup Antrenmanı" },
+                                        { 10, "Kardiyovasküler" }, { 11, "Güç Antrenmanı" }, { 12, "Esneklik" }, { 13, "Dans" },
+                                        { 14, "Aerobik" }, { 15, "Vücut Geliştirme" }, { 16, "Boks" }, { 17, "Muay Thai" },
+                                        { 18, "Brezilya Jiu Jitsu" }, { 19, "Karate" }, { 20, "Tae Kwon Do" }, { 21, "Yüzme" },
+                                        { 22, "Su Aerobiği" }, { 23, "Su Topu" }, { 24, "Basketbol" }, { 25, "Futbol" },
+                                        { 26, "Voleybol" }, { 27, "Tenis" }, { 28, "Badminton" }, { 29, "Masa Tenisi" },
+                                        { 30, "Squash" }, { 31, "Raketbol" }, { 32, "Koşu" }, { 33, "Jogging" },
+                                        { 34, "Yürüyüş" }, { 35, "Doğa Yürüyüşü" }, { 36, "Bisiklet" }, { 37, "Kapalı Bisiklet" },
+                                        { 38, "Kürek" }, { 39, "Tırmanış" }, { 40, "Kaya Tırmanışı" }, { 41, "Bouldering" },
+                                        { 42, "Jimnastik" }, { 43, "Kalistenik" }, { 44, "TRX" }, { 45, "Kettlebell" },
+                                        { 46, "Fonksiyonel Antrenman" }, { 47, "HIIT" }, { 48, "Tabata" }, { 49, "Devre Antrenmanı" },
+                                        { 50, "Boot Camp" }, { 51, "Barre" }, { 52, "Bale" }, { 53, "Modern Dans" },
+                                        { 54, "Latin Dans" }, { 55, "Hip Hop" }, { 56, "Oryantal Dans" }, { 57, "Pole Dance" },
+                                        { 58, "Aerial Yoga" }, { 59, "Hot Yoga" }, { 60, "Power Yoga" }, { 61, "Yin Yoga" },
+                                        { 62, "Ashtanga Yoga" }, { 63, "Vinyasa Yoga" }, { 64, "Hatha Yoga" }, { 65, "Pilates Mat" },
+                                        { 66, "Reformer Pilates" }, { 67, "Barre Pilates" }, { 68, "Meditasyon" }, { 69, "Farkındalık" },
+                                        { 70, "Tai Chi" }, { 71, "Qigong" }, { 72, "Dövüş Sanatları" }, { 73, "Güreş" },
+                                        { 74, "Judo" }, { 75, "Aikido" }, { 76, "Capoeira" }, { 77, "MMA" },
+                                        { 78, "Öz Savunma" }, { 79, "Krav Maga" }, { 80, "Kilo Verme" }, { 81, "Kas Geliştirme" },
+                                        { 82, "Rehabilitasyon" }, { 83, "Fizik Tedavi" }, { 84, "Yaşlılar İçin Fitness" }, { 85, "Çocuk Fitness" },
+                                        { 86, "Hamile Yoga" }, { 87, "Doğum Sonrası Yoga" }, { 88, "Spor Masajı" }, { 89, "Esneklik Dersi" },
+                                        { 90, "Esneklik Antrenmanı" }, { 91, "Mobilite Antrenmanı" }, { 92, "Core Antrenmanı" }, { 93, "Karın Antrenmanı" },
+                                        { 94, "Kalça Antrenmanı" }, { 95, "Bacak Antrenmanı" }, { 96, "Kol Antrenmanı" }, { 97, "Sırt Antrenmanı" },
+                                        { 98, "Göğüs Antrenmanı" }, { 99, "Omuz Antrenmanı" }, { 100, "Tüm Vücut Antrenmanı" }
+                                    };
+                                }
+                                @foreach (var type in activityTypes)
+                                {
+                                    <option value="@type.Key">@type.Value</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Type" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Duration" class="form-label">Süre (Dakika)</label>
+                                <input asp-for="Duration" type="number" class="form-control" min="1" />
+                                <span asp-validation-for="Duration" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Price" class="form-label">Fiyat (₺)</label>
+                                <input asp-for="Price" type="number" step="0.01" class="form-control" min="0" />
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ImageUrl" class="form-label">Görsel URL (Opsiyonel)</label>
+                            <input asp-for="ImageUrl" type="text" class="form-control" placeholder="https://example.com/image.jpg" />
+                            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-check-lg"></i> Kaydet
+                            </button>
+                            <a href="@Url.Action("Activities", "Admin")" class="btn btn-secondary">
+                                <i class="bi bi-x-lg"></i> İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Form submit öncesi kontrol
+        document.getElementById('createActivityForm')?.addEventListener('submit', function(e) {
+            const gymCenterSelect = document.querySelector('select[name="GymCenterId"]');
+            const gymCenterId = gymCenterSelect?.value;
+            const activityType = document.querySelector('select[name="Type"]')?.value;
+            const name = document.querySelector('input[name="Name"]')?.value;
+            const description = document.querySelector('textarea[name="Description"]')?.value;
+            const duration = document.querySelector('input[name="Duration"]')?.value;
+            const price = document.querySelector('input[name="Price"]')?.value;
+            
+            // Konsola debug bilgisi yazdır
+            console.log('=== Form Submit Debug ===');
+            console.log('Form Data:', {
+                GymCenterId: gymCenterId,
+                GymCenterIdType: typeof gymCenterId,
+                Type: activityType,
+                Name: name,
+                Description: description,
+                Duration: duration,
+                Price: price
+            });
+            
+            // Select element'in durumunu kontrol et
+            if (gymCenterSelect) {
+                console.log('GymCenter Select:', {
+                    selectedIndex: gymCenterSelect.selectedIndex,
+                    selectedOptions: gymCenterSelect.selectedOptions.length,
+                    options: Array.from(gymCenterSelect.options).map(opt => ({ value: opt.value, text: opt.text }))
+                });
+            }
+            
+            // Eğer GymCenterId seçilmemişse uyar
+            if (!gymCenterId || gymCenterId === '0' || gymCenterId === '') {
+                e.preventDefault();
+                alert('Lütfen bir spor salonu seçin.');
+                console.error('GymCenterId validation failed:', gymCenterId);
+                if (gymCenterSelect) {
+                    gymCenterSelect.focus();
+                    gymCenterSelect.classList.add('is-invalid');
+                }
+                return false;
+            }
+            
+            // Eğer Type seçilmemişse uyar
+            if (!activityType || activityType === '0' || activityType === '') {
+                e.preventDefault();
+                alert('Lütfen bir aktivite tipi seçin.');
+                console.error('ActivityType validation failed:', activityType);
+                return false;
+            }
+            
+            // Form submit edilmeden önce değerleri tekrar kontrol et
+            console.log('Form validation passed, submitting...');
+            console.log('Final GymCenterId value:', gymCenterId);
+            
+            // FormData oluştur ve kontrol et
+            const formData = new FormData(e.target);
+            const formGymCenterId = formData.get('GymCenterId');
+            console.log('FormData GymCenterId:', formGymCenterId);
+            
+            if (!formGymCenterId || formGymCenterId === '0' || formGymCenterId === '') {
+                e.preventDefault();
+                alert('Form gönderilirken spor salonu değeri kayboldu. Lütfen tekrar deneyin.');
+                console.error('FormData validation failed:', formGymCenterId);
+                return false;
+            }
+        });
+    </script>
+}
+

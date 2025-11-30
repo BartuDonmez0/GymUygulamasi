@@ -1,0 +1,81 @@
+@model List<GymApp.Entities.Activity>
+@{
+    ViewData["Title"] = "Aktiviteler";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-0"><i class="bi bi-list-check"></i> Aktiviteler</h2>
+                <p class="text-muted">Toplam @Model.Count aktivite</p>
+            </div>
+            <a href="@Url.Action("CreateActivity", "Admin")" class="btn btn-warning">
+                <i class="bi bi-plus-circle"></i> Yeni Aktivite Ekle
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Ad</th>
+                                <th>Açıklama</th>
+                                <th>Tip</th>
+                                <th>Süre (dk)</th>
+                                <th>Fiyat (₺)</th>
+                                <th>Spor Salonu</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var activity in Model)
+                            {
+                                <tr>
+                                    <td>@activity.Id</td>
+                                    <td>@activity.Name</td>
+                                    <td>@(activity.Description.Length > 50 ? activity.Description.Substring(0, 50) + "..." : activity.Description)</td>
+                                    <td>@activity.Type</td>
+                                    <td>@activity.Duration</td>
+                                    <td>@activity.Price</td>
+                                    <td>@(activity.GymCenter?.Name ?? "N/A")</td>
+                                    <td>
+                                        <a href="@Url.Action("EditActivity", "Admin", new { id = activity.Id })" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i> Düzenle
+                                        </a>
+                                        <form asp-action="DeleteActivity" method="post" style="display: inline;" onsubmit="return confirm('Bu aktiviteyi silmek istediğinize emin misiniz?');">
+                                            <input type="hidden" name="id" value="@activity.Id" />
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Sil
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> Henüz aktivite bulunmamaktadır.
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="@Url.Action("Index", "Admin")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Admin Paneline Dön
+        </a>
+    </div>
+</div>
+

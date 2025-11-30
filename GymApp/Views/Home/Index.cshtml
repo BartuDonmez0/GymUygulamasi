@@ -1,0 +1,537 @@
+﻿@{
+    ViewData["Title"] = "Ana Sayfa";
+    var userName = Context.Request.Cookies["WelcomeUserName"] ?? Context.Session.GetString("UserName") ?? "Kullanıcı";
+    var showWelcome = Context.Request.Cookies["ShowWelcomeMessage"] == "true";
+    var isAdmin = Context.Session.GetString("IsAdmin") == "true";
+}
+
+<!-- Hero Section -->
+<section class="hero-section mb-5">
+    <div class="container-fluid px-0">
+        <div class="row g-0">
+            <div class="col-12">
+                <div class="hero-banner position-relative">
+                    <div class="hero-content text-center text-white position-relative">
+                        <h1 class="display-3 fw-bold mb-4 animate-fade-in">
+                            <i class="bi bi-activity"></i> GymApp
+                        </h1>
+                        <p class="lead mb-4 animate-fade-in-delay">
+                            Spor Salonu Yönetim ve Randevu Sistemine Hoş Geldiniz
+                        </p>
+                        <div class="hero-buttons animate-fade-in-delay-2">
+                            <a href="@Url.Action("Index", "GymCenter")" class="btn btn-primary btn-lg me-3 mb-2 mb-md-0">
+                                <i class="bi bi-building"></i> Spor Salonları
+                            </a>
+                            <a href="@Url.Action("Index", "Trainer")" class="btn btn-outline-light btn-lg mb-2 mb-md-0">
+                                <i class="bi bi-person-badge"></i> Antrenörler
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Access Section -->
+<section class="quick-access-section mb-5">
+    <div class="container px-3 px-md-4">
+        <div class="row g-4">
+            <!-- Spor Salonları Card -->
+            <div class="col-12 col-md-6">
+                <div class="feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h3 class="feature-title">Spor Salonları</h3>
+                    <p class="feature-description">
+                        Bölgenizdeki spor salonlarını keşfedin, çalışma saatlerini görüntüleyin ve detaylı bilgilere ulaşın.
+                    </p>
+                    <a href="@Url.Action("Index", "GymCenter")" class="btn btn-primary">
+                        Salonları Görüntüle <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Antrenörler Card -->
+            <div class="col-12 col-md-6">
+                <div class="feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h3 class="feature-title">Antrenörler</h3>
+                    <p class="feature-description">
+                        Uzman antrenörlerimizi keşfedin, uzmanlık alanlarını inceleyin ve müsaitlik durumlarını kontrol edin.
+                    </p>
+                    <a href="@Url.Action("Index", "Trainer")" class="btn btn-primary">
+                        Antrenörleri Görüntüle <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section mb-5">
+    <div class="container px-3 px-md-4">
+        <h2 class="text-center mb-5 section-title">
+            <i class="bi bi-star-fill"></i> Neden GymApp?
+        </h2>
+        <div class="row g-4">
+            <div class="col-12 col-md-4">
+                <div class="feature-item text-center">
+                    <div class="feature-item-icon mb-3">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h4>Kolay Randevu</h4>
+                    <p>Online randevu sistemi ile istediğiniz zaman, istediğiniz antrenörden randevu alın.</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="feature-item text-center">
+                    <div class="feature-item-icon mb-3">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <h4>AI Önerileri</h4>
+                    <p>Yapay zeka destekli kişiselleştirilmiş egzersiz ve diyet planı önerileri alın.</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="feature-item text-center">
+                    <div class="feature-item-icon mb-3">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4>Güvenli Sistem</h4>
+                    <p>Verileriniz güvende. Rol bazlı yetkilendirme ile güvenli bir deneyim.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Hero Section */
+    .hero-section {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .hero-banner {
+        background: #1a1a1a;
+        min-height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .hero-content {
+        z-index: 1;
+        padding: 3rem 1rem;
+    }
+
+    .hero-buttons .btn {
+        min-width: 200px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+
+    .hero-buttons .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Feature Cards */
+    .feature-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2.5rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-title {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-size: 1.75rem;
+    }
+
+    .feature-description {
+        color: #666;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    /* Features Section */
+    .section-title {
+        color: #333;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+
+    .feature-item {
+        padding: 2rem;
+    }
+
+    .feature-item-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-size: 2rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-item h4 {
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .feature-item p {
+        color: #666;
+        line-height: 1.6;
+    }
+
+    /* Animations */
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    .animate-fade-in-delay {
+        animation: fadeIn 0.8s ease-out 0.2s both;
+    }
+
+    .animate-fade-in-delay-2 {
+        animation: fadeIn 0.8s ease-out 0.4s both;
+    }
+
+    /* Responsive - Tablet (992px ve altı) */
+    @@media (max-width: 992px) {
+        .quick-access-section .row {
+            --bs-gutter-x: 1.5rem;
+            --bs-gutter-y: 1.5rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+        }
+    }
+
+    /* Responsive - Tablet (768px ve altı) */
+    @@media (max-width: 768px) {
+        .hero-section {
+            margin-top: 0;
+        }
+
+        .hero-banner {
+            min-height: 350px;
+        }
+
+        .hero-content {
+            padding: 2rem 1rem;
+        }
+
+        .hero-content h1 {
+            font-size: 2rem !important;
+        }
+
+        .hero-content p {
+            font-size: 1rem !important;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hero-buttons .btn {
+            min-width: 100%;
+            max-width: 300px;
+            margin: 0;
+        }
+
+        .quick-access-section {
+            padding: 0 1rem;
+        }
+
+        .quick-access-section .row {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1.5rem;
+        }
+
+        .feature-card {
+            padding: 1.75rem;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        .feature-icon {
+            width: 65px;
+            height: 65px;
+            font-size: 2.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.875rem;
+        }
+
+        .feature-description {
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-card .btn {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .feature-item {
+            padding: 1.5rem;
+        }
+
+        .feature-item-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.75rem;
+        }
+    }
+
+    /* Responsive - Küçük Telefon (576px ve altı) */
+    @@media (max-width: 576px) {
+        .hero-banner {
+            min-height: 300px;
+        }
+
+        .hero-content {
+            padding: 1.5rem 0.75rem;
+        }
+
+        .hero-content h1 {
+            font-size: 1.75rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .hero-content p {
+            font-size: 0.9rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .hero-buttons .btn {
+            padding: 0.6rem 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .quick-access-section,
+        .features-section {
+            margin-bottom: 3rem !important;
+        }
+
+        .quick-access-section .container {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .quick-access-section .row {
+            --bs-gutter-x: 0.75rem;
+            --bs-gutter-y: 1.25rem;
+        }
+
+        .feature-card {
+            padding: 1.5rem 1.25rem;
+            border-radius: 12px;
+        }
+
+        .feature-icon {
+            width: 55px;
+            height: 55px;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .feature-description {
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+
+        .feature-card .btn {
+            width: 100%;
+            max-width: 100%;
+            padding: 0.65rem 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            margin-bottom: 2rem !important;
+        }
+
+        .feature-item {
+            padding: 1rem;
+        }
+
+        .feature-item-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-item p {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Responsive - Çok Küçük Ekranlar (400px ve altı) */
+    @@media (max-width: 400px) {
+        .hero-content h1 {
+            font-size: 1.5rem !important;
+        }
+
+        .hero-content p {
+            font-size: 0.85rem !important;
+        }
+
+        .hero-buttons .btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 1.25rem;
+        }
+
+        .quick-access-section .row {
+            --bs-gutter-x: 0.5rem;
+            --bs-gutter-y: 1rem;
+        }
+
+        .feature-card {
+            padding: 1.25rem 1rem;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.15rem;
+        }
+
+        .feature-description {
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<!-- Hoş Geldin Pop-up Modal -->
+@if (showWelcome)
+{
+    <div class="modal fade" id="welcomeModal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title" id="welcomeModalLabel">
+                        <i class="bi bi-check-circle-fill"></i> Hoş Geldiniz!
+                    </h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-person-check" style="font-size: 4rem; color: #111111;"></i>
+                    </div>
+                    <h4 class="mb-3">Hoş Geldiniz, @userName!</h4>
+                    @if (isAdmin)
+                    {
+                        <p class="text-muted mb-0">Admin paneline erişebilir ve tüm sistem yönetim işlemlerini gerçekleştirebilirsiniz.</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">GymApp'e başarıyla giriş yaptınız. Spor salonlarını keşfedin ve randevu alın!</p>
+                    }
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-primary btn-lg px-5" data-bs-dismiss="modal">
+                        <i class="bi bi-check-lg"></i> Devam Et
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var welcomeModal = new bootstrap.Modal(document.getElementById('welcomeModal'));
+            welcomeModal.show();
+            
+            // Modal kapandığında cookie'yi sil
+            document.getElementById('welcomeModal').addEventListener('hidden.bs.modal', function() {
+                // Cookie'yi silmek için expire date'i geçmişe al
+                document.cookie = 'ShowWelcomeMessage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                document.cookie = 'WelcomeUserName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            });
+        });
+    </script>
+}

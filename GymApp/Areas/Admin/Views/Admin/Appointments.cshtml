@@ -1,0 +1,107 @@
+@model List<GymApp.Entities.Appointment>
+@{
+    ViewData["Title"] = "Randevular";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0"><i class="bi bi-calendar-check"></i> Randevular</h2>
+            <p class="text-muted">Toplam @Model.Count randevu</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Üye</th>
+                                <th>Antrenör</th>
+                                <th>Spor Salonu</th>
+                                <th>Tarih</th>
+                                <th>Hizmet Tipi</th>
+                                <th>Fiyat (₺)</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var appointment in Model)
+                            {
+                                <tr>
+                                    <td>@appointment.Id</td>
+                                    <td>@(appointment.Member?.FirstName + " " + appointment.Member?.LastName ?? "N/A")</td>
+                                    <td>@(appointment.Trainer?.FirstName + " " + appointment.Trainer?.LastName ?? "N/A")</td>
+                                    <td>@(appointment.GymCenter?.Name ?? "N/A")</td>
+                                    <td>@appointment.AppointmentDate.ToString("dd MMMM yyyy HH:mm", new System.Globalization.CultureInfo("tr-TR"))</td>
+                                    <td>@(appointment.Activity?.Name ?? "N/A")</td>
+                                    <td>@appointment.Price</td>
+                                    <td>
+                                        @if (appointment.Status == AppointmentStatus.Pending)
+                                        {
+                                            <span class="badge bg-warning">Beklemede</span>
+                                        }
+                                        else if (appointment.Status == AppointmentStatus.Approved)
+                                        {
+                                            <span class="badge bg-success">Onaylandı</span>
+                                        }
+                                        else if (appointment.Status == AppointmentStatus.Rejected)
+                                        {
+                                            <span class="badge bg-danger">Reddedildi</span>
+                                        }
+                                        else if (appointment.Status == AppointmentStatus.Completed)
+                                        {
+                                            <span class="badge bg-info">Tamamlandı</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@appointment.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (appointment.Status == AppointmentStatus.Pending)
+                                        {
+                                            <form asp-action="UpdateAppointmentStatus" method="post" style="display: inline;">
+                                                <input type="hidden" name="id" value="@appointment.Id" />
+                                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Approved)" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-check-lg"></i> Onayla
+                                                </button>
+                                            </form>
+                                        }
+                                        <form asp-action="DeleteAppointment" method="post" style="display: inline;" onsubmit="return confirm('Bu randevuyu silmek istediğinize emin misiniz?');">
+                                            <input type="hidden" name="id" value="@appointment.Id" />
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Sil
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> Henüz randevu bulunmamaktadır.
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="@Url.Action("Index", "Admin")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Admin Paneline Dön
+        </a>
+    </div>
+</div>
+

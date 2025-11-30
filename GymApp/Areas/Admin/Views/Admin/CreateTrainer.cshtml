@@ -1,0 +1,354 @@
+@model GymApp.Entities.Trainer
+@{
+    ViewData["Title"] = "Yeni Antrenör Ekle";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="bi bi-person-plus"></i> Yeni Antrenör Ekle</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateTrainer" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label">Ad</label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label">Soyad</label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">E-posta</label>
+                            <input asp-for="Email" type="email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Phone" class="form-label">Telefon</label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Uzmanlık Alanları (Aktiviteler) <span class="text-danger">*</span></label>
+                            <small class="form-text text-muted d-block mb-2">Antrenörün yapabileceği aktiviteleri seçiniz.</small>
+                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                @{
+                                    var activities = ViewBag.Activities as List<GymApp.Entities.Activity> ?? new List<GymApp.Entities.Activity>();
+                                }
+                                @if (activities.Any())
+                                {
+                                    <div class="row">
+                                        @foreach (var activity in activities)
+                                        {
+                                            <div class="col-md-6 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input activity-checkbox" 
+                                                           type="checkbox" 
+                                                           name="SelectedActivityIds" 
+                                                           value="@activity.Id" 
+                                                           id="activity_@activity.Id" />
+                                                    <label class="form-check-label" for="activity_@activity.Id">
+                                                        @activity.Name
+                                                        <small class="text-muted">(@activity.GymCenter?.Name)</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">Henüz aktivite eklenmemiş. Önce aktivite ekleyin.</p>
+                                }
+                            </div>
+                            <input type="hidden" id="selectedActivityIdsInput" name="SelectedActivityIds" value="" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="GymCenterId" class="form-label">Spor Salonu <span class="text-danger">*</span></label>
+                            <select asp-for="GymCenterId" class="form-select" id="gymCenterSelect" required>
+                                <option value="">Spor Salonu Seçiniz</option>
+                                @foreach (var gymCenter in ViewBag.GymCenters ?? new List<GymApp.Entities.GymCenter>())
+                                {
+                                    <option value="@gymCenter.Id">@gymCenter.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="GymCenterId" class="text-danger"></span>
+                            <small class="form-text text-muted">Spor salonu seçildikten sonra çalışma saatleri görünecektir.</small>
+                        </div>
+
+                        <div class="mb-4" id="workingHoursSection" style="display: none;">
+                            <label class="form-label fw-bold">Çalışma Saatleri</label>
+                            <small class="form-text text-muted d-block mb-3">Seçilen spor salonunun çalışma saatleri içinden antrenörün çalışacağı saatleri seçiniz.</small>
+                            <input type="hidden" asp-for="WorkingHoursJson" id="workingHoursJsonInput" value="[]" />
+                            <div id="workingHoursContainer">
+                                <!-- Çalışma saatleri buraya eklenecek -->
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg"></i> Kaydet
+                            </button>
+                            <a href="@Url.Action("Trainers", "Admin")" class="btn btn-secondary">
+                                <i class="bi bi-x-lg"></i> İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Aktivite seçimlerini yönet
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.activity-checkbox');
+            const hiddenInput = document.getElementById('selectedActivityIdsInput');
+            
+            function updateSelectedActivities() {
+                const selectedIds = Array.from(checkboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value)
+                    .join(',');
+                hiddenInput.value = selectedIds;
+            }
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedActivities);
+            });
+            
+            // Form submit öncesi kontrol
+            document.querySelector('form').addEventListener('submit', function(e) {
+                updateSelectedActivities();
+                const selectedCount = hiddenInput.value.split(',').filter(id => id !== '').length;
+                if (selectedCount === 0) {
+                    e.preventDefault();
+                    alert('Lütfen en az bir aktivite seçiniz.');
+                    return false;
+                }
+            });
+        });
+        
+        // Spor salonları ve çalışma saatleri
+        const gymCentersData = @Html.Raw(ViewBag.GymCentersJson ?? "[]");
+        let workingHoursData = {}; // { "1": ["10-11", "11-12"], "2": ["14-15", "15-16"] }
+        let selectedGymCenterHours = {}; // Seçilen spor salonunun çalışma saatleri
+        
+        const daysOfWeek = [
+            { value: 0, text: 'Pazar' },
+            { value: 1, text: 'Pazartesi' },
+            { value: 2, text: 'Salı' },
+            { value: 3, text: 'Çarşamba' },
+            { value: 4, text: 'Perşembe' },
+            { value: 5, text: 'Cuma' },
+            { value: 6, text: 'Cumartesi' }
+        ];
+
+        // Spor salonu seçildiğinde
+        document.getElementById('gymCenterSelect').addEventListener('change', function() {
+            const gymCenterId = this.value;
+            const workingHoursSection = document.getElementById('workingHoursSection');
+            
+            if (!gymCenterId) {
+                workingHoursSection.style.display = 'none';
+                return;
+            }
+            
+            // Seçilen spor salonunun çalışma saatlerini bul
+            const gymCenter = gymCentersData.find(gc => gc.Id == gymCenterId);
+            if (!gymCenter) {
+                workingHoursSection.style.display = 'none';
+                return;
+            }
+            
+            // Çalışma saatlerini parse et
+            try {
+                const hoursData = JSON.parse(gymCenter.WorkingHoursJson || '[]');
+                selectedGymCenterHours = {};
+                hoursData.forEach(item => {
+                    if (item.Hours && Array.isArray(item.Hours)) {
+                        selectedGymCenterHours[item.Day] = item.Hours;
+                    }
+                });
+            } catch (e) {
+                console.error('Çalışma saatleri parse hatası:', e);
+                selectedGymCenterHours = {};
+            }
+            
+            // Çalışma saatleri bölümünü göster ve render et
+            workingHoursSection.style.display = 'block';
+            renderWorkingHours();
+        });
+
+        // JSON'u güncelle
+        function updateWorkingHoursJson() {
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            const dataArray = [];
+            
+            Object.keys(workingHoursData).forEach(day => {
+                if (workingHoursData[day] && workingHoursData[day].length > 0) {
+                    dataArray.push({
+                        Day: parseInt(day),
+                        Hours: workingHoursData[day]
+                    });
+                }
+            });
+            
+            jsonInput.value = JSON.stringify(dataArray);
+        }
+
+        // Çalışma saatlerini render et
+        function renderWorkingHours() {
+            const container = document.getElementById('workingHoursContainer');
+            container.innerHTML = '';
+            
+            if (Object.keys(selectedGymCenterHours).length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Seçilen spor salonunun çalışma saatleri tanımlanmamış.</div>';
+                return;
+            }
+            
+            daysOfWeek.forEach(day => {
+                const gymCenterHours = selectedGymCenterHours[day.value] || [];
+                if (gymCenterHours.length === 0) {
+                    return; // Bu gün için spor salonu çalışmıyor
+                }
+                
+                const trainerHours = workingHoursData[day.value] || [];
+                const dayCard = document.createElement('div');
+                dayCard.className = 'card mb-3';
+                dayCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="form-check">
+                            <input class="form-check-input day-radio" 
+                                   type="radio" 
+                                   name="selectedDay" 
+                                   id="day_${day.value}" 
+                                   value="${day.value}">
+                            <label class="form-check-label fw-bold" for="day_${day.value}">
+                                ${day.text}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body" id="day_${day.value}_hours" style="display: none;">
+                        <p class="text-muted small mb-2">Spor salonu bu gün şu saatlerde çalışıyor:</p>
+                        <div class="row">
+                            ${gymCenterHours.map(hour => {
+                                const [start, end] = hour.split('-');
+                                const hourText = `${start}:00 - ${end}:00`;
+                                return `
+                                    <div class="col-md-3 col-sm-4 col-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input hour-checkbox" 
+                                                   type="checkbox" 
+                                                   data-day="${day.value}" 
+                                                   data-hour="${hour}" 
+                                                   id="hour_${day.value}_${hour}" 
+                                                   ${trainerHours.includes(hour) ? 'checked' : ''}>
+                                            <label class="form-check-label" for="hour_${day.value}_${hour}">
+                                                ${hourText}
+                                            </label>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary mt-2" onclick="saveDayHours(${day.value})">
+                            <i class="bi bi-check"></i> Saatleri Kaydet
+                        </button>
+                    </div>
+                `;
+                container.appendChild(dayCard);
+
+                // Radio button event listener
+                const radio = dayCard.querySelector('.day-radio');
+                radio.addEventListener('change', function() {
+                    document.querySelectorAll('[id$="_hours"]').forEach(el => {
+                        el.style.display = 'none';
+                    });
+                    if (this.checked) {
+                        document.getElementById(`day_${day.value}_hours`).style.display = 'block';
+                    }
+                });
+            });
+
+            // Checkbox event listeners
+            document.querySelectorAll('.hour-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const day = this.getAttribute('data-day');
+                    const hour = this.getAttribute('data-hour');
+                    
+                    if (!workingHoursData[day]) {
+                        workingHoursData[day] = [];
+                    }
+                    
+                    if (this.checked) {
+                        if (!workingHoursData[day].includes(hour)) {
+                            workingHoursData[day].push(hour);
+                        }
+                    } else {
+                        workingHoursData[day] = workingHoursData[day].filter(h => h !== hour);
+                    }
+                });
+            });
+        }
+
+        // Gün saatlerini kaydet
+        function saveDayHours(day) {
+            const checkboxes = document.querySelectorAll(`.hour-checkbox[data-day="${day}"]`);
+            const selectedHours = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.getAttribute('data-hour'));
+            
+            if (selectedHours.length === 0) {
+                alert('Lütfen en az bir saat seçiniz.');
+                return;
+            }
+            
+            workingHoursData[day] = selectedHours;
+            updateWorkingHoursJson();
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alertDiv.innerHTML = `
+                <strong>Başarılı!</strong> ${daysOfWeek.find(d => d.value === day)?.text} günü için ${selectedHours.length} saat kaydedildi.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.getElementById(`day_${day}_hours`).appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // Form submit öncesi validasyon
+        document.querySelector('form').addEventListener('submit', function(e) {
+            updateWorkingHoursJson();
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            const data = JSON.parse(jsonInput.value || '[]');
+            
+            if (data.length === 0) {
+                e.preventDefault();
+                alert('Lütfen en az bir gün için çalışma saatleri ekleyiniz.');
+                return false;
+            }
+        });
+    </script>
+}
+

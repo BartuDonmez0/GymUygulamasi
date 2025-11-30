@@ -1,0 +1,107 @@
+@model GymApp.Entities.Member
+@{
+    ViewData["Title"] = "Profil";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0"><i class="bi bi-person-circle"></i> Profil Bilgilerim</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="profile-icon mb-3">
+                            <i class="bi bi-person-circle" style="font-size: 5rem; color: #111111;"></i>
+                        </div>
+                        <h4>@Model.FirstName @Model.LastName</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person"></i> Ad
+                                </label>
+                                <p class="form-control-plaintext">@Model.FirstName</p>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person"></i> Soyad
+                                </label>
+                                <p class="form-control-plaintext">@Model.LastName</p>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-envelope"></i> E-posta
+                                </label>
+                                <p class="form-control-plaintext">@Model.Email</p>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-telephone"></i> Telefon
+                                </label>
+                                <p class="form-control-plaintext">@Model.Phone</p>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-calendar-check"></i> Kayıt Tarihi
+                                </label>
+                                <p class="form-control-plaintext">@Model.RegistrationDate.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-primary">
+                            <i class="bi bi-house-door"></i> Ana Sayfaya Dön
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .info-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-item label {
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .info-item p {
+        color: #212529;
+        margin: 0;
+        padding: 0.5rem 0;
+    }
+
+    .profile-icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+

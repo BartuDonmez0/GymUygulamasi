@@ -1,0 +1,111 @@
+@model AdminMessagesViewModel
+@{
+    ViewData["Title"] = "Mesajlar";
+}
+
+<div class="admin-page">
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <h2 class="fw-bold mb-1"><i class="bi bi-envelope-open"></i> Gelen Kutusu</h2>
+                    <p class="text-muted mb-0">Üyelerden gelen bildirimleri yönetin ve hızlıca cevaplayın.</p>
+                </div>
+                <div class="text-muted">
+                    Toplam <strong>@Model.Inbox.Count</strong> mesaj
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (ViewData["MessageSuccess"] is string successText)
+    {
+        <div class="alert alert-dark logout-alert d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <span>@successText</span>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Gelen Mesajlar</span>
+                    <span class="badge bg-light text-dark">@DateTime.UtcNow.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Inbox.Any())
+                    {
+                        <div class="list-group list-group-flush admin-message-list">
+                            @foreach (var message in Model.Inbox)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                        <div>
+                                            <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                <span class="message-status @(message.IsRead ? "read" : "unread")"></span>
+                                                @message.Subject
+                                            </h5>
+                                            <p class="mb-1 text-muted small">@message.SenderName (@message.SenderEmail)</p>
+                                        </div>
+                                        <span class="text-muted small">
+                                            @message.ReceivedAt.ToLocalTime().ToString("dd MMM HH:mm", new System.Globalization.CultureInfo("tr-TR"))
+                                        </span>
+                                    </div>
+                                    <p class="mb-0 mt-2 text-light">@message.Body</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-inbox mb-2" style="font-size: 2rem;"></i>
+                            <p class="mb-0">Şu anda görüntülenecek mesaj yok.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    Mesaja Yanıt Ver
+                </div>
+                <div class="card-body">
+                    <form asp-action="ReplyMessage" method="post" class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Reply.ToEmail" class="form-label">Alıcı E-Posta</label>
+                            <input asp-for="Reply.ToEmail" class="form-control" placeholder="ornek@eposta.com" />
+                            <span asp-validation-for="Reply.ToEmail" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Reply.Subject" class="form-label">Konu</label>
+                            <input asp-for="Reply.Subject" class="form-control" placeholder="Konu başlığı" />
+                            <span asp-validation-for="Reply.Subject" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Reply.Body" class="form-label">Mesaj</label>
+                            <textarea asp-for="Reply.Body" class="form-control" rows="6" placeholder="Mesajınızı yazın"></textarea>
+                            <span asp-validation-for="Reply.Body" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12 d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send"></i> Mesajı Gönder
+                            </button>
+                            <a asp-area="Admin" asp-controller="Admin" asp-action="Messages" class="btn btn-outline-light">
+                                Temizle
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

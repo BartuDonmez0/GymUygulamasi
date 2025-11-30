@@ -1,0 +1,193 @@
+@model GymApp.Entities.Activity
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.GymCenterId })" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Aktiviteler Listesine Dön
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Activity Image -->
+        <div class="col-12 col-md-6">
+            <div class="card shadow-sm border-0">
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/600x400?text=Activity" : Model.ImageUrl)" 
+                     class="card-img-top" alt="@Model.Name" style="height: 400px; object-fit: cover; border-radius: 15px 15px 0 0;">
+            </div>
+        </div>
+
+        <!-- Activity Details -->
+        <div class="col-12 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <span class="badge bg-primary fs-6 mb-3">@Model.Type</span>
+                    </div>
+                    <h1 class="card-title fw-bold mb-3">@Model.Name</h1>
+                    <p class="card-text text-muted mb-4">@Model.Description</p>
+                    
+                    <div class="activity-info-card p-4 mb-4 bg-light rounded">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <i class="bi bi-clock fs-3 text-primary mb-2"></i>
+                                    <h6 class="text-muted mb-1">Süre</h6>
+                                    <strong class="fs-5">@Model.Duration dakika</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <i class="bi bi-currency-dollar fs-3 text-success mb-2"></i>
+                                    <h6 class="text-muted mb-1">Fiyat</h6>
+                                    <strong class="fs-5 text-success">@Model.Price ₺</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Index", "Appointment")" class="btn btn-success btn-lg">
+                            <i class="bi bi-calendar-plus"></i> Randevu Al
+                        </a>
+                        <a href="@Url.Action("Details", "GymCenter", new { id = Model.GymCenterId })" class="btn btn-outline-primary">
+                            <i class="bi bi-building"></i> Spor Salonunu Görüntüle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .activity-info-card {
+        border: 2px solid #e9ecef;
+    }
+
+    .card-title {
+        text-align: center;
+    }
+
+    .card-text {
+        text-align: center;
+    }
+
+    /* Responsive - Tablet */
+    @@media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+        }
+
+        .card-text {
+            font-size: 0.95rem;
+        }
+
+        .activity-info-card {
+            padding: 1.5rem !important;
+        }
+
+        .activity-info-card .row {
+            text-align: center;
+        }
+    }
+
+    /* Responsive - Telefon */
+    @@media (max-width: 576px) {
+        .container {
+            padding: 0.75rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        .card img {
+            height: 250px !important;
+            border-radius: 10px !important;
+        }
+
+        .card-body {
+            padding: 1.25rem !important;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem !important;
+        }
+
+        .card-text {
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .badge {
+            font-size: 0.85rem !important;
+            display: block;
+            width: fit-content;
+            margin: 0 auto 1rem;
+        }
+
+        .activity-info-card {
+            padding: 1rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .activity-info-card .row {
+            margin: 0;
+        }
+
+        .activity-info-card .col-6 {
+            padding: 0.5rem;
+        }
+
+        .activity-info-card i {
+            font-size: 2rem !important;
+        }
+
+        .activity-info-card h6 {
+            font-size: 0.85rem;
+        }
+
+        .activity-info-card strong {
+            font-size: 1.1rem !important;
+        }
+
+        .d-grid .btn {
+            width: 100%;
+            font-size: 0.95rem;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+        }
+    }
+
+    /* Responsive - Çok Küçük Ekranlar */
+    @@media (max-width: 400px) {
+        .card-title {
+            font-size: 1.25rem;
+        }
+
+        .card-text {
+            font-size: 0.85rem;
+        }
+
+        .activity-info-card i {
+            font-size: 1.75rem !important;
+        }
+
+        .activity-info-card strong {
+            font-size: 1rem !important;
+        }
+    }
+</style>
+

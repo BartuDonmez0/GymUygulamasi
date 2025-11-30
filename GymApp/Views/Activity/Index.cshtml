@@ -1,0 +1,337 @@
+@model List<GymApp.Entities.Activity>
+@{
+    ViewData["Title"] = "Aktiviteler";
+    var gymCenterId = ViewData["GymCenterId"] as int?;
+}
+
+<div class="container px-3 px-md-4">
+<div class="page-header mb-4">
+    <h2><i class="bi bi-list-check"></i> Aktiviteler</h2>
+    @if (gymCenterId.HasValue)
+    {
+        <p class="text-muted mb-0">
+            <a href="@Url.Action("Details", "GymCenter", new { id = gymCenterId.Value })" class="text-decoration-none">
+                <i class="bi bi-arrow-left"></i> Spor Salonuna Dön
+            </a>
+        </p>
+    }
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <!-- Filter Section -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-12 col-md-4 mb-3 mb-md-0">
+                    <label class="form-label fw-bold">Aktivite Tipi Filtrele</label>
+                    <select id="typeFilter" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="Yoga">Yoga</option>
+                        <option value="Pilates">Pilates</option>
+                        <option value="Fitness">Fitness</option>
+                        <option value="Antrenörlük">Antrenörlük</option>
+                        <option value="Dans">Dans</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 mb-3 mb-md-0">
+                    <label class="form-label fw-bold">Fiyat Aralığı</label>
+                    <select id="priceFilter" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="0-100">0 - 100 ₺</option>
+                        <option value="100-150">100 - 150 ₺</option>
+                        <option value="150-200">150 - 200 ₺</option>
+                        <option value="200+">200 ₺ ve üzeri</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <button type="button" class="btn btn-primary w-100" onclick="filterActivities()">
+                        <i class="bi bi-funnel"></i> Filtrele
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities Grid -->
+    <div class="row g-4" id="activitiesContainer">
+        @foreach (var activity in Model)
+        {
+            <div class="col-12 col-md-6 col-lg-4 activity-card" 
+                 data-type="@activity.Type" 
+                 data-price="@activity.Price">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="activity-image-wrapper">
+                        <img src="@(string.IsNullOrEmpty(activity.ImageUrl) ? "https://via.placeholder.com/400x250?text=Activity" : activity.ImageUrl)" 
+                             class="card-img-top" alt="@activity.Name" style="height: 200px; object-fit: cover;">
+                        <div class="activity-badge">
+                            <span class="badge bg-primary">@activity.Type</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-3">@activity.Name</h5>
+                        <p class="card-text text-muted small mb-3">
+                            @(string.IsNullOrEmpty(activity.Description) ? "Açıklama bulunmamaktadır." : activity.Description)
+                        </p>
+                        <div class="activity-details mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">
+                                    <i class="bi bi-clock"></i> Süre
+                                </span>
+                                <strong>@activity.Duration dakika</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">
+                                    <i class="bi bi-currency-dollar"></i> Fiyat
+                                </span>
+                                <strong class="text-success fs-5">@activity.Price ₺</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-0 pt-0">
+                        <div class="d-grid gap-2">
+                            <a href="@Url.Action("Details", "Activity", new { id = activity.Id })" class="btn btn-outline-primary">
+                                <i class="bi bi-info-circle"></i> Detaylar
+                            </a>
+                            <a href="@Url.Action("Index", "Appointment")" class="btn btn-success">
+                                <i class="bi bi-calendar-plus"></i> Randevu Al
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- No Results Message (hidden by default) -->
+    <div id="noResults" class="alert alert-info text-center d-none">
+        <i class="bi bi-info-circle"></i> Seçilen filtreye uygun aktivite bulunamadı.
+    </div>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> Henüz aktivite tanımlanmamıştır.
+    </div>
+}
+</div>
+
+<style>
+    .activity-card {
+        transition: all 0.3s ease;
+    }
+
+    .activity-card .card {
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .activity-card:hover .card {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .activity-image-wrapper {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .activity-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+
+    .activity-badge .badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+    }
+
+    .activity-details {
+        border-top: 1px solid #e9ecef;
+        padding-top: 1rem;
+    }
+
+    .page-header {
+        text-align: center;
+    }
+
+    /* Responsive - Tablet */
+    @@media (max-width: 768px) {
+        .page-header h2 {
+            font-size: 1.75rem;
+        }
+
+        .activity-card {
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-card .card-body {
+            padding: 1.25rem !important;
+        }
+
+        .activity-card .card-title {
+            font-size: 1.1rem;
+        }
+
+        .activity-card .card-text {
+            font-size: 0.9rem;
+        }
+
+        .card-body .row {
+            flex-direction: column;
+        }
+
+        .card-body .col-md-4 {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .card-body .form-select {
+            width: 100%;
+        }
+    }
+
+    /* Responsive - Telefon */
+    @@media (max-width: 576px) {
+        .page-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .page-header p {
+            font-size: 0.9rem;
+        }
+
+        .card-body {
+            padding: 1rem !important;
+        }
+
+        .card-body .row {
+            margin: 0;
+        }
+
+        .card-body .col-12,
+        .card-body .col-md-4 {
+            padding: 0.5rem 0;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-card .card {
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-card .card-body {
+            padding: 1rem !important;
+        }
+
+        .activity-card .card-title {
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .activity-card .card-text {
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .activity-badge {
+            top: 10px;
+            right: 10px;
+        }
+
+        .activity-badge .badge {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .activity-details {
+            text-align: center;
+        }
+
+        .card-footer .d-grid .btn {
+            width: 100%;
+        }
+    }
+
+    /* Responsive - Çok Küçük Ekranlar */
+    @@media (max-width: 400px) {
+        .page-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .activity-card .card-title {
+            font-size: 0.95rem;
+        }
+
+        .activity-card .card-text {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<script>
+    function filterActivities() {
+        const typeFilter = document.getElementById('typeFilter').value;
+        const priceFilter = document.getElementById('priceFilter').value;
+        const activities = document.querySelectorAll('.activity-card');
+        let visibleCount = 0;
+
+        activities.forEach(activity => {
+            const activityType = activity.getAttribute('data-type');
+            const activityPrice = parseFloat(activity.getAttribute('data-price'));
+            
+            let showActivity = true;
+
+            // Type filter
+            if (typeFilter && activityType !== typeFilter) {
+                showActivity = false;
+            }
+
+            // Price filter
+            if (priceFilter && showActivity) {
+                switch (priceFilter) {
+                    case '0-100':
+                        if (activityPrice > 100) showActivity = false;
+                        break;
+                    case '100-150':
+                        if (activityPrice < 100 || activityPrice > 150) showActivity = false;
+                        break;
+                    case '150-200':
+                        if (activityPrice < 150 || activityPrice > 200) showActivity = false;
+                        break;
+                    case '200+':
+                        if (activityPrice < 200) showActivity = false;
+                        break;
+                }
+            }
+
+            if (showActivity) {
+                activity.style.display = '';
+                visibleCount++;
+            } else {
+                activity.style.display = 'none';
+            }
+        });
+
+        // Show/hide no results message
+        const noResults = document.getElementById('noResults');
+        if (visibleCount === 0) {
+            noResults.classList.remove('d-none');
+        } else {
+            noResults.classList.add('d-none');
+        }
+    }
+
+    // Reset filters on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('typeFilter').addEventListener('change', filterActivities);
+        document.getElementById('priceFilter').addEventListener('change', filterActivities);
+    });
+</script>
+

@@ -1,0 +1,52 @@
+@{
+    ViewData["Title"] = "Giriş Yap";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Giriş Yap</h3>
+                </div>
+                <div class="card-body p-4">
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i> @ViewBag.Error
+                        </div>
+                    }
+
+                    @if (ViewBag.Success != null)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle"></i> @ViewBag.Success
+                        </div>
+                    }
+
+                    <form asp-action="Login" method="post">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-posta</label>
+                            <input type="email" class="form-control" id="email" name="email" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Şifre</label>
+                            <input type="password" class="form-control" id="password" name="password" required />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Giriş Yap
+                            </button>
+                            <a asp-action="Register" class="btn btn-outline-secondary">
+                                <i class="bi bi-person-plus"></i> Hesabınız yok mu? Kayıt Ol
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

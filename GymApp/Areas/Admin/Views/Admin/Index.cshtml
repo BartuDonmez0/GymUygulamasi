@@ -1,0 +1,265 @@
+@{
+    ViewData["Title"] = "Admin Paneli";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0"><i class="bi bi-shield-lock"></i> Admin Paneli</h2>
+            <p class="text-muted">Sistem yönetim paneline hoş geldiniz</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Members Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-people" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Kullanıcılar</h5>
+                    <p class="card-text text-muted">Kayıtlı tüm kullanıcıları görüntüleyin ve yönetin</p>
+                    <a href="@Url.Action("Members", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Kullanıcıları Görüntüle
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trainers Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-person-badge" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Antrenörler</h5>
+                    <p class="card-text text-muted">Antrenörleri görüntüleyin, ekleyin veya düzenleyin</p>
+                    <a href="@Url.Action("Trainers", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Antrenörleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activities Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-list-check" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Aktiviteler</h5>
+                    <p class="card-text text-muted">Aktiviteleri görüntüleyin, ekleyin veya düzenleyin</p>
+                    <a href="@Url.Action("Activities", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Aktiviteleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gym Centers Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-building" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Spor Salonları</h5>
+                    <p class="card-text text-muted">Spor salonlarını görüntüleyin, ekleyin veya düzenleyin</p>
+                    <a href="@Url.Action("GymCenters", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Spor Salonlarını Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-calendar-check" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Randevular</h5>
+                    <p class="card-text text-muted">Randevuları görüntüleyin, onaylayın veya silin</p>
+                    <a href="@Url.Action("Appointments", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Randevuları Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Card -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-envelope" style="font-size: 3rem; color: #ffffff;"></i>
+                    </div>
+                    <h5 class="card-title">Mesajlar</h5>
+                    <p class="card-text text-muted">Kullanıcı mesajlarını görüntüleyin ve cevaplayın</p>
+                    <a href="@Url.Action("Messages", "Admin")" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Mesajları Görüntüle
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Responsive - Tablet (992px ve altı) */
+    @@media (max-width: 992px) {
+        .row.g-4 {
+            --bs-gutter-x: 1.5rem;
+            --bs-gutter-y: 1.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .card-body i {
+            font-size: 2.5rem !important;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+        }
+
+        .card-text {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Responsive - Tablet (768px ve altı) */
+    @@media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .row.g-4 {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1.25rem;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        .card-body i {
+            font-size: 2.25rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-text {
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-body .btn {
+            width: 100%;
+            max-width: 200px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Responsive - Telefon (576px ve altı) */
+    @@media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .row.mb-4 h2 {
+            font-size: 1.5rem;
+        }
+
+        .row.mb-4 p {
+            font-size: 0.9rem;
+        }
+
+        .row.g-4 {
+            --bs-gutter-x: 0.75rem;
+            --bs-gutter-y: 1rem;
+        }
+
+        .card {
+            margin-bottom: 0;
+        }
+
+        .card-body {
+            padding: 1.25rem 1rem;
+        }
+
+        .card-body i {
+            font-size: 2rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-text {
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .card-body .btn {
+            width: 100%;
+            max-width: 100%;
+            padding: 0.6rem 1rem;
+            font-size: 0.875rem;
+        }
+    }
+
+    /* Responsive - Çok Küçük Ekranlar (400px ve altı) */
+    @@media (max-width: 400px) {
+        .row.g-4 {
+            --bs-gutter-x: 0.5rem;
+            --bs-gutter-y: 0.875rem;
+        }
+
+        .card-body {
+            padding: 1rem 0.875rem;
+        }
+
+        .card-body i {
+            font-size: 1.75rem !important;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+        }
+
+        .card-text {
+            font-size: 0.8rem;
+        }
+
+        .card-body .btn {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.875rem;
+        }
+    }
+</style>

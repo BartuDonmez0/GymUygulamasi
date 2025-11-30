@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "Veritabanı Test";
+}
+
+<div class="container mt-4">
+    <h2>Veritabanı Bağlantı Testi</h2>
+    
+    @if (ViewBag.Status == "success")
+    {
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">@ViewBag.Message</h4>
+            <hr>
+            <p><strong>Members:</strong> @ViewBag.MembersCount</p>
+            <p><strong>Trainers:</strong> @ViewBag.TrainersCount</p>
+            <p><strong>Gym Centers:</strong> @ViewBag.GymCentersCount</p>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">@ViewBag.Message</h4>
+            @if (ViewBag.ErrorDetails != null)
+            {
+                <hr>
+                <pre class="small">@ViewBag.ErrorDetails</pre>
+            }
+        </div>
+    }
+    
+    <a href="@Url.Action("Index", "Home")" class="btn btn-primary">Ana Sayfaya Dön</a>
+</div>
+

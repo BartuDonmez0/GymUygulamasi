@@ -1,0 +1,138 @@
+@{
+    var title = ViewData["Title"] as string ?? "Admin Paneli";
+    var activeMenu = (ViewData["ActiveMenu"]?.ToString() ?? string.Empty).ToLowerInvariant();
+    string ActiveClass(string key) => activeMenu == key ? "active" : string.Empty;
+    var adminName = Context.Session.GetString("UserName") ?? "Admin";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - GymApp Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+</head>
+<body class="admin-body">
+    <div class="admin-overlay"></div>
+    <div class="admin-shell d-flex">
+        <aside class="admin-sidebar d-flex flex-column">
+            <div class="admin-brand">
+                <i class="bi bi-activity"></i>
+                <div>
+                    <span class="brand-title">GymApp</span>
+                    <small class="brand-subtitle">Yönetim Merkezi</small>
+                </div>
+            </div>
+            <nav class="admin-nav flex-grow-1">
+                <span class="admin-nav-label">Genel</span>
+                <a class="admin-nav-link @ActiveClass("dashboard")" asp-area="Admin" asp-controller="Admin" asp-action="Index">
+                    <i class="bi bi-grid-1x2"></i>
+                    Gösterge Paneli
+                </a>
+                <a class="admin-nav-link @ActiveClass("members")" asp-area="Admin" asp-controller="Admin" asp-action="Members">
+                    <i class="bi bi-people"></i>
+                    Üyeler
+                </a>
+                <a class="admin-nav-link @ActiveClass("trainers")" asp-area="Admin" asp-controller="Admin" asp-action="Trainers">
+                    <i class="bi bi-person-badge"></i>
+                    Antrenörler
+                </a>
+                <a class="admin-nav-link @ActiveClass("activities")" asp-area="Admin" asp-controller="Admin" asp-action="Activities">
+                    <i class="bi bi-list-check"></i>
+                    Aktiviteler
+                </a>
+                <a class="admin-nav-link @ActiveClass("gyms")" asp-area="Admin" asp-controller="Admin" asp-action="GymCenters">
+                    <i class="bi bi-building"></i>
+                    Spor Salonları
+                </a>
+                <a class="admin-nav-link @ActiveClass("appointments")" asp-area="Admin" asp-controller="Admin" asp-action="Appointments">
+                    <i class="bi bi-calendar-check"></i>
+                    Randevular
+                </a>
+                <a class="admin-nav-link @ActiveClass("messages")" asp-area="Admin" asp-controller="Admin" asp-action="Messages">
+                    <i class="bi bi-envelope"></i>
+                    Mesajlar
+                </a>
+            </nav>
+            <div class="admin-sidebar-footer">
+                <div class="admin-user-info">
+                    <i class="bi bi-shield-lock"></i>
+                    <div>
+                        <span class="text-muted small">Oturum</span>
+                        <strong>@adminName</strong>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <a class="btn btn-outline-light btn-sm flex-fill" asp-area="" asp-controller="Home" asp-action="Index">
+                        Siteye Dön
+                    </a>
+                    <a class="btn btn-primary btn-sm flex-fill" asp-area="" asp-controller="Account" asp-action="Logout">
+                        Çıkış Yap
+                    </a>
+                </div>
+            </div>
+        </aside>
+        <div class="admin-main flex-grow-1 d-flex flex-column">
+            <header class="admin-topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="admin-menu-toggle d-lg-none" type="button" aria-label="Menüyü Aç/Kapat">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <p class="text-uppercase text-muted small mb-1">Yönetim Paneli</p>
+                        <h1 class="admin-topbar-title mb-0">@title</h1>
+                    </div>
+                </div>
+                <div class="admin-topbar-actions">
+                    <span class="badge rounded-pill bg-secondary text-uppercase">Rol: Admin</span>
+                </div>
+            </header>
+            <main class="admin-content flex-grow-1">
+                @RenderBody()
+            </main>
+            <footer class="admin-footer text-center py-3">
+                <small class="text-muted">&copy; @DateTime.UtcNow.Year GymApp Yönetim Paneli</small>
+            </footer>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.querySelector('.admin-menu-toggle');
+            const sidebar = document.querySelector('.admin-sidebar');
+            const overlay = document.querySelector('.admin-overlay');
+            
+            if (menuToggle && sidebar && overlay) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                    overlay.classList.toggle('active');
+                });
+                
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                });
+                
+                // Sidebar içindeki linklere tıklandığında mobilde kapat
+                const sidebarLinks = sidebar.querySelectorAll('.admin-nav-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 992) {
+                            sidebar.classList.remove('open');
+                            overlay.classList.remove('active');
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+

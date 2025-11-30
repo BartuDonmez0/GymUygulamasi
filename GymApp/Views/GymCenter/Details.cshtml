@@ -1,0 +1,480 @@
+@model GymApp.Entities.GymCenter
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<!-- Gym Center Header Section -->
+<section class="gym-header-section mb-4">
+    <div class="container-fluid px-0">
+        <div class="gym-hero-banner position-relative">
+            <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/1200x400?text=Gym" : Model.ImageUrl)" 
+                 class="w-100" alt="@Model.Name" style="height: 400px; object-fit: cover;">
+            <div class="gym-hero-overlay"></div>
+            <div class="gym-hero-content position-absolute top-50 start-50 translate-middle text-center text-white">
+                <h1 class="display-4 fw-bold mb-3">@Model.Name</h1>
+                <p class="lead mb-0">@Model.Description</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container px-3 px-md-4">
+    <!-- Advertisement Section -->
+    @if (!string.IsNullOrEmpty(Model.Advertisement))
+    {
+        <div class="advertisement-section mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start">
+                        <div class="ad-icon me-3">
+                            <i class="bi bi-megaphone"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-2">Özel Kampanya</h5>
+                            <p class="mb-0 text-muted">@Model.Advertisement</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Main Content -->
+        <div class="col-12 col-lg-8">
+            <!-- Contact Information -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> İletişim Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="contact-item">
+                                <i class="bi bi-geo-alt-fill text-primary"></i>
+                                <strong>Adres:</strong>
+                                <p class="mb-0">@Model.Address</p>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="contact-item">
+                                <i class="bi bi-telephone-fill text-primary"></i>
+                                <strong>Telefon:</strong>
+                                <p class="mb-0">
+                                    <a href="tel:@Model.Phone" class="text-decoration-none">@Model.Phone</a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="contact-item">
+                                <i class="bi bi-envelope-fill text-primary"></i>
+                                <strong>E-posta:</strong>
+                                <p class="mb-0">
+                                    <a href="mailto:@Model.Email" class="text-decoration-none">@Model.Email</a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="contact-item">
+                                <i class="bi bi-clock-fill text-primary"></i>
+                                <strong>Çalışma Saatleri:</strong>
+                                <div class="mb-0">
+                                    @{
+                                        var workingHoursDisplay = "Belirtilmemiş";
+                                        if (!string.IsNullOrEmpty(Model.WorkingHoursJson) && Model.WorkingHoursJson != "[]")
+                                        {
+                                            try
+                                            {
+                                                // Yeni format: [{"Day": 1, "Hours": ["10-11", "11-12"]}]
+                                                var workingHoursData = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(Model.WorkingHoursJson);
+                                                if (workingHoursData != null && workingHoursData.Any())
+                                                {
+                                                    var daysOfWeek = new[] { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
+                                                    var hoursList = new List<string>();
+                                                    
+                                                    foreach (var item in workingHoursData)
+                                                    {
+                                                        if (item.TryGetProperty("Day", out var dayElement) && 
+                                                            item.TryGetProperty("Hours", out var hoursElement))
+                                                        {
+                                                            var day = dayElement.GetInt32();
+                                                            var hours = hoursElement.EnumerateArray()
+                                                                .Select(h => h.GetString())
+                                                                .Where(h => !string.IsNullOrEmpty(h))
+                                                                .ToList();
+                                                            
+                                                            if (hours.Any())
+                                                            {
+                                                                // Saatleri formatla: "10-11" -> "10:00 - 11:00"
+                                                                var formattedHours = hours.Select(h => 
+                                                                {
+                                                                    var parts = h.Split('-');
+                                                                    if (parts.Length == 2)
+                                                                    {
+                                                                        return $"{parts[0]}:00 - {parts[1]}:00";
+                                                                    }
+                                                                    return h;
+                                                                });
+                                                                
+                                                                hoursList.Add($"<strong>{daysOfWeek[day]}:</strong> {string.Join(", ", formattedHours)}");
+                                                            }
+                                                        }
+                                                        // Eski format desteği (backward compatibility)
+                                                        else if (item.TryGetProperty("Day", out var dayElementOld) && 
+                                                                 item.TryGetProperty("TimeRange", out var timeRangeElement))
+                                                        {
+                                                            var day = dayElementOld.GetInt32();
+                                                            var timeRange = timeRangeElement.GetString();
+                                                            hoursList.Add($"<strong>{daysOfWeek[day]}:</strong> {timeRange}");
+                                                        }
+                                                    }
+                                                    
+                                                    if (hoursList.Any())
+                                                    {
+                                                        workingHoursDisplay = string.Join("<br>", hoursList);
+                                                    }
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                workingHoursDisplay = Model.WorkingHours ?? "Belirtilmemiş";
+                                            }
+                                        }
+                                        else if (!string.IsNullOrEmpty(Model.WorkingHours))
+                                        {
+                                            workingHoursDisplay = Model.WorkingHours;
+                                        }
+                                    }
+                                    @Html.Raw(workingHoursDisplay)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Section -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Aktiviteler</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Activities != null && Model.Activities.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var activity in Model.Activities)
+                            {
+                                <div class="col-12 col-md-6">
+                                    <div class="activity-item-card p-3 border rounded">
+                                        <h6 class="fw-bold mb-2">
+                                            <i class="bi bi-star-fill text-warning"></i> @activity.Name
+                                        </h6>
+                                        <p class="small text-muted mb-2">@activity.Type</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock"></i> @activity.Duration dk
+                                            </small>
+                                            <strong class="text-success">@activity.Price ₺</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="mt-4 text-center">
+                            <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.Id })" class="btn btn-success">
+                                <i class="bi bi-arrow-right-circle"></i> Tüm Aktiviteleri Görüntüle
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">Henüz aktivite tanımlanmamıştır.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-12 col-lg-4">
+            <!-- Photo Gallery -->
+            @if (Model.Photos != null && Model.Photos.Any())
+            {
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-images"></i> Spor Fotoğrafları</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="photo-gallery">
+                            @foreach (var photo in Model.Photos)
+                            {
+                                <div class="gallery-item">
+                                    <img src="@photo.PhotoUrl" class="img-fluid" alt="Gym Photo" data-bs-toggle="modal" data-bs-target="#photoModal" onclick="showPhotoModal('@photo.PhotoUrl')">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-fill"></i> Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Index", "Activity", new { gymCenterId = Model.Id })" class="btn btn-outline-primary">
+                            <i class="bi bi-list-check"></i> Aktiviteleri Görüntüle
+                        </a>
+                        <a href="@Url.Action("Index", "Appointment")" class="btn btn-outline-success">
+                            <i class="bi bi-calendar-plus"></i> Randevu Al
+                        </a>
+                        <a href="@Url.Action("Index", "Trainer")" class="btn btn-outline-info">
+                            <i class="bi bi-person-badge"></i> Antrenörleri Gör
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Modal -->
+<div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="photoModalLabel">Fotoğraf</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <img id="modalPhoto" src="" class="img-fluid w-100" alt="Gym Photo">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .gym-hero-banner {
+        position: relative;
+    }
+
+    .gym-hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
+    }
+
+    .gym-hero-content {
+        z-index: 1;
+    }
+
+    .ad-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .contact-item {
+        padding: 0.75rem 0;
+    }
+
+    .contact-item i {
+        font-size: 1.25rem;
+        margin-right: 0.5rem;
+    }
+
+    .activity-item-card {
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .activity-item-card:hover {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .photo-gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .gallery-item {
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .gallery-item:hover {
+        transform: scale(1.05);
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Responsive - Tablet */
+    @@media (max-width: 768px) {
+        .gym-hero-banner img {
+            height: 300px !important;
+        }
+
+        .gym-hero-content {
+            padding: 1rem;
+        }
+
+        .gym-hero-content h1 {
+            font-size: 1.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        .gym-hero-content p {
+            font-size: 0.95rem !important;
+        }
+
+        .advertisement-section .card-body {
+            padding: 1.5rem !important;
+        }
+
+        .ad-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+
+        .contact-item {
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+
+        .contact-item i {
+            display: block;
+            margin: 0 auto 0.5rem;
+        }
+
+        .photo-gallery {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .activity-item-card {
+            text-align: center;
+        }
+    }
+
+    /* Responsive - Telefon */
+    @@media (max-width: 576px) {
+        .gym-header-section {
+            margin-bottom: 2rem !important;
+        }
+
+        .gym-hero-banner img {
+            height: 250px !important;
+        }
+
+        .gym-hero-content {
+            padding: 0.75rem;
+        }
+
+        .gym-hero-content h1 {
+            font-size: 1.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        .gym-hero-content p {
+            font-size: 0.85rem !important;
+        }
+
+        .advertisement-section {
+            margin-bottom: 2rem !important;
+        }
+
+        .advertisement-section .card-body {
+            padding: 1rem !important;
+        }
+
+        .advertisement-section .d-flex {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .ad-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            margin-right: 0 !important;
+        }
+
+        .card-header h5 {
+            font-size: 1rem;
+        }
+
+        .contact-item {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .contact-item strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-item i {
+            font-size: 1rem;
+        }
+
+        .photo-gallery {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .activity-item-card {
+            text-align: center;
+            padding: 1rem !important;
+        }
+
+        .d-grid.gap-2 .btn {
+            width: 100%;
+        }
+    }
+
+    /* Responsive - Çok Küçük Ekranlar */
+    @@media (max-width: 400px) {
+        .gym-hero-content h1 {
+            font-size: 1.25rem !important;
+        }
+
+        .gym-hero-content p {
+            font-size: 0.8rem !important;
+        }
+
+        .card-header h5 {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+<script>
+    function showPhotoModal(photoUrl) {
+        document.getElementById('modalPhoto').src = photoUrl;
+    }
+</script>
+

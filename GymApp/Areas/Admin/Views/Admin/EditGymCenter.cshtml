@@ -1,0 +1,296 @@
+@model GymApp.Entities.GymCenter
+@{
+    ViewData["Title"] = "Spor Salonu Düzenle";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0"><i class="bi bi-pencil"></i> Spor Salonu Düzenle</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditGymCenter" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Spor Salonu Adı</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Açıklama</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">Adres</label>
+                            <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Phone" class="form-label">Telefon</label>
+                                <input asp-for="Phone" class="form-control" />
+                                <span asp-validation-for="Phone" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label">E-posta</label>
+                                <input asp-for="Email" type="email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Çalışma Saatleri</label>
+                            <small class="form-text text-muted d-block mb-3">Her gün için çalışma saatlerini seçiniz.</small>
+                            <input type="hidden" asp-for="WorkingHoursJson" id="workingHoursJsonInput" value="@(Model.WorkingHoursJson ?? "[]")" />
+                            
+                            <div id="workingHoursContainer">
+                                <!-- Çalışma saatleri buraya eklenecek -->
+                            </div>
+                            
+                            <small class="form-text text-muted d-block mt-2">Gün seçin ve o gün için çalışma saatlerini işaretleyin.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Advertisement" class="form-label">Reklam Metni</label>
+                            <textarea asp-for="Advertisement" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Advertisement" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ImageUrl" class="form-label">Ana Görsel URL (Opsiyonel)</label>
+                            <input asp-for="ImageUrl" type="url" class="form-control" />
+                            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-check-lg"></i> Güncelle
+                            </button>
+                            <a href="@Url.Action("GymCenters", "Admin")" class="btn btn-secondary">
+                                <i class="bi bi-x-lg"></i> İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Mevcut JSON verisini yükle
+        let workingHoursData = {}; // { "1": ["10-11", "11-12"], "2": ["14-15", "15-16"] }
+        try {
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            if (jsonInput && jsonInput.value) {
+                const parsedData = JSON.parse(jsonInput.value);
+                // Eski format: [{"Day": 1, "TimeRange": "09:00-18:00"}]
+                // Yeni format: [{"Day": 1, "Hours": ["10-11", "11-12"]}]
+                if (Array.isArray(parsedData)) {
+                    parsedData.forEach(item => {
+                        if (item.Hours && Array.isArray(item.Hours)) {
+                            // Yeni format
+                            workingHoursData[item.Day] = item.Hours;
+                        } else if (item.TimeRange) {
+                            // Eski format - saat aralığını saat dilimlerine çevir
+                            const timeRange = item.TimeRange;
+                            const [start, end] = timeRange.split('-');
+                            const startHour = parseInt(start.split(':')[0]);
+                            const endHour = parseInt(end.split(':')[0]);
+                            const hours = [];
+                            for (let h = startHour; h < endHour; h++) {
+                                hours.push(`${h.toString().padStart(2, '0')}-${(h + 1).toString().padStart(2, '0')}`);
+                            }
+                            workingHoursData[item.Day] = hours;
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('JSON parse hatası:', e);
+            workingHoursData = {};
+        }
+
+        const daysOfWeek = [
+            { value: 0, text: 'Pazar' },
+            { value: 1, text: 'Pazartesi' },
+            { value: 2, text: 'Salı' },
+            { value: 3, text: 'Çarşamba' },
+            { value: 4, text: 'Perşembe' },
+            { value: 5, text: 'Cuma' },
+            { value: 6, text: 'Cumartesi' }
+        ];
+
+        // Saat dilimlerini oluştur (6:00 - 23:00 arası, her saat)
+        function generateHourSlots() {
+            const slots = [];
+            for (let hour = 6; hour < 23; hour++) {
+                const startHour = hour.toString().padStart(2, '0');
+                const endHour = (hour + 1).toString().padStart(2, '0');
+                slots.push({
+                    value: `${startHour}-${endHour}`,
+                    text: `${startHour}:00 - ${endHour}:00`
+                });
+            }
+            return slots;
+        }
+
+        const hourSlots = generateHourSlots();
+
+        // JSON'u güncelle
+        function updateWorkingHoursJson() {
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            const dataArray = [];
+            
+            Object.keys(workingHoursData).forEach(day => {
+                if (workingHoursData[day] && workingHoursData[day].length > 0) {
+                    dataArray.push({
+                        Day: parseInt(day),
+                        Hours: workingHoursData[day]
+                    });
+                }
+            });
+            
+            jsonInput.value = JSON.stringify(dataArray);
+        }
+
+        // Çalışma saatlerini render et
+        function renderWorkingHours() {
+            const container = document.getElementById('workingHoursContainer');
+            container.innerHTML = '';
+            
+            daysOfWeek.forEach(day => {
+                const dayData = workingHoursData[day.value] || [];
+                const dayCard = document.createElement('div');
+                dayCard.className = 'card mb-3';
+                dayCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="form-check">
+                            <input class="form-check-input day-radio" 
+                                   type="radio" 
+                                   name="selectedDay" 
+                                   id="day_${day.value}" 
+                                   value="${day.value}">
+                            <label class="form-check-label fw-bold" for="day_${day.value}">
+                                ${day.text}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body" id="day_${day.value}_hours" style="display: none;">
+                        <div class="row">
+                            ${hourSlots.map(slot => `
+                                <div class="col-md-3 col-sm-4 col-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input hour-checkbox" 
+                                               type="checkbox" 
+                                               data-day="${day.value}" 
+                                               data-hour="${slot.value}" 
+                                               id="hour_${day.value}_${slot.value}" 
+                                               ${dayData.includes(slot.value) ? 'checked' : ''}>
+                                        <label class="form-check-label" for="hour_${day.value}_${slot.value}">
+                                            ${slot.text}
+                                        </label>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary mt-2" onclick="saveDayHours(${day.value})">
+                            <i class="bi bi-check"></i> Saatleri Kaydet
+                        </button>
+                    </div>
+                `;
+                container.appendChild(dayCard);
+
+                // Radio button event listener
+                const radio = dayCard.querySelector('.day-radio');
+                radio.addEventListener('change', function() {
+                    // Tüm gün saatlerini gizle
+                    document.querySelectorAll('[id$="_hours"]').forEach(el => {
+                        el.style.display = 'none';
+                    });
+                    // Seçilen günün saatlerini göster
+                    if (this.checked) {
+                        document.getElementById(`day_${day.value}_hours`).style.display = 'block';
+                    }
+                });
+            });
+
+            // Checkbox event listeners
+            document.querySelectorAll('.hour-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const day = this.getAttribute('data-day');
+                    const hour = this.getAttribute('data-hour');
+                    
+                    if (!workingHoursData[day]) {
+                        workingHoursData[day] = [];
+                    }
+                    
+                    if (this.checked) {
+                        if (!workingHoursData[day].includes(hour)) {
+                            workingHoursData[day].push(hour);
+                        }
+                    } else {
+                        workingHoursData[day] = workingHoursData[day].filter(h => h !== hour);
+                    }
+                });
+            });
+        }
+
+        // Gün saatlerini kaydet
+        function saveDayHours(day) {
+            const checkboxes = document.querySelectorAll(`.hour-checkbox[data-day="${day}"]`);
+            const selectedHours = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.getAttribute('data-hour'));
+            
+            if (selectedHours.length === 0) {
+                alert('Lütfen en az bir saat seçiniz.');
+                return;
+            }
+            
+            workingHoursData[day] = selectedHours;
+            updateWorkingHoursJson();
+            
+            // Başarı mesajı
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alertDiv.innerHTML = `
+                <strong>Başarılı!</strong> ${daysOfWeek.find(d => d.value === day)?.text} günü için ${selectedHours.length} saat kaydedildi.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.getElementById(`day_${day}_hours`).appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // İlk render
+        renderWorkingHours();
+
+        // Form submit öncesi validasyon
+        document.querySelector('form').addEventListener('submit', function(e) {
+            updateWorkingHoursJson();
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            const data = JSON.parse(jsonInput.value || '[]');
+            
+            if (data.length === 0) {
+                e.preventDefault();
+                alert('Lütfen en az bir gün için çalışma saatleri ekleyiniz.');
+                return false;
+            }
+        });
+    </script>
+}
