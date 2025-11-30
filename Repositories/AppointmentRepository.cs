@@ -13,7 +13,13 @@ public class AppointmentRepository : Repository<Appointment>, IAppointmentReposi
     public async Task<IEnumerable<Appointment>> GetByMemberIdAsync(int memberId)
     {
         return await _dbSet
+            .Include(a => a.Member)
+            .Include(a => a.Trainer)
+            .Include(a => a.Activity)
+            .Include(a => a.GymCenter)
             .Where(a => a.MemberId == memberId)
+            .OrderByDescending(a => a.AppointmentDate)
+            .ThenByDescending(a => a.AppointmentTime)
             .ToListAsync();
     }
 

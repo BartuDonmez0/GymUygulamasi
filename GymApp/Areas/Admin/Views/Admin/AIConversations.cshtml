@@ -1,0 +1,183 @@
+@{
+    ViewData["Title"] = "AI Görüşmeleri";
+    var conversations = ViewBag.Conversations as dynamic;
+    var allMessages = ViewBag.AllMessages as IEnumerable<GymApp.Entities.ChatMessage> ?? new List<GymApp.Entities.ChatMessage>();
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0"><i class="bi bi-robot"></i> AI Görüşmeleri</h2>
+            <p class="text-muted">AI ile yapılan görüşmeleri görüntüleyin ve yönetin</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Tüm AI Görüşmeleri</h5>
+                </div>
+                <div class="card-body">
+                    @if (allMessages.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Kullanıcı</th>
+                                        <th>E-posta</th>
+                                        <th>Kullanıcı Mesajı</th>
+                                        <th>AI Yanıtı</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var message in allMessages)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@(message.Member?.FirstName ?? "") @(message.Member?.LastName ?? "")</strong>
+                                            </td>
+                                            <td>@(message.Member?.Email ?? "")</td>
+                                            <td>
+                                                <div style="max-width: 300px; word-wrap: break-word;">
+                                                    @message.Message
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(message.Response))
+                                                {
+                                                    <div style="max-width: 400px; word-wrap: break-word; max-height: 150px; overflow-y: auto;">
+                                                        @Html.Raw(message.Response.Replace("\n", "<br>"))
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Yanıt bekleniyor...</span>
+                                                }
+                                            </td>
+                                            <td>@message.CreatedDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-chat-quote" style="font-size: 4rem; color: #6c757d;"></i>
+                            <h4 class="mt-3">Henüz AI görüşmesi yok</h4>
+                            <p class="text-muted">Kullanıcılar AI danışmanı ile görüşmeye başladığında burada görünecektir.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (conversations != null)
+    {
+        var conversationsList = conversations as System.Collections.IEnumerable;
+        var hasConversations = false;
+        if (conversationsList != null)
+        {
+            foreach (var item in conversationsList)
+            {
+                hasConversations = true;
+                break;
+            }
+        }
+        
+        @if (hasConversations)
+        {
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Kullanıcıya Göre Görüşmeler</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="accordion" id="conversationsAccordion">
+                                @{
+                                    int index = 0;
+                                }
+                                @foreach (dynamic conversation in conversationsList)
+                                {
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="heading@(index)">
+                                            <button class="accordion-button @(index == 0 ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(index)" aria-expanded="@(index == 0 ? "true" : "false")">
+                                                <div class="d-flex justify-content-between w-100 me-3">
+                                                    <div>
+                                                        <strong>@(conversation?.MemberName ?? "Bilinmeyen")</strong>
+                                                        <small class="text-muted d-block">@(conversation?.MemberEmail ?? "")</small>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="badge bg-dark">@(conversation?.MessageCount ?? 0) mesaj</span>
+                                                        <small class="text-muted d-block">@(conversation?.LastMessageDate != null ? ((DateTime)conversation.LastMessageDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </h2>
+                                        <div id="collapse@(index)" class="accordion-collapse collapse @(index == 0 ? "show" : "")" aria-labelledby="heading@(index)">
+                                            <div class="accordion-body">
+                                                <div class="chat-conversation">
+                                                    @if (conversation?.Messages != null)
+                                                    {
+                                                        @foreach (var msg in conversation.Messages)
+                                                        {
+                                                            <div class="message-item mb-3">
+                                                                <div class="user-message-box p-3 mb-2 bg-light rounded">
+                                                                    <strong>Kullanıcı:</strong> @(msg?.Message ?? "")
+                                                                    <small class="text-muted d-block mt-1">@(msg?.CreatedDate != null ? ((DateTime)msg.CreatedDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
+                                                                </div>
+                                                                @if (msg != null && !string.IsNullOrEmpty(msg.Response))
+                                                                {
+                                                                    <div class="ai-message-box p-3 bg-dark text-white rounded">
+                                                                        <strong><i class="bi bi-robot"></i> AI:</strong>
+                                                                        <div class="mt-2">@Html.Raw((msg.Response ?? "").Replace("\n", "<br>"))</div>
+                                                                        <small class="text-white-50 d-block mt-2">@(msg.CreatedDate != null ? ((DateTime)msg.CreatedDate).ToString("dd.MM.yyyy HH:mm") : "")</small>
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    index++;
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .chat-conversation {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .message-item {
+        border-left: 3px solid #000;
+        padding-left: 1rem;
+    }
+
+    .user-message-box {
+        border-left: 3px solid #6c757d;
+    }
+
+    .ai-message-box {
+        border-left: 3px solid #fff;
+    }
+
+    .table td {
+        vertical-align: top;
+    }
+</style>
