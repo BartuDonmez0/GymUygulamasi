@@ -42,7 +42,7 @@ public class ActivityService : IActivityService
             throw new InvalidOperationException($"Geçersiz GymCenterId: {activity.GymCenterId}");
         }
         
-        // Navigation property'leri temizle
+        // Navigation property'leri temizliyoruz
         activity.GymCenter = null!;
         activity.TrainerActivities = new List<TrainerActivity>();
         activity.Appointments = new List<Appointment>();
