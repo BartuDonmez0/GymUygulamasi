@@ -21,7 +21,7 @@ public class AdminMessageItemViewModel
 
 public class AdminMessageReply
 {
-    [Required(ErrorMessage = "Alıcı e-postası zorunludur...")]
+    [Required(ErrorMessage = "Alıcı e-postası zorunludur.")]
     [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string ToEmail { get; set; } = string.Empty;
 
