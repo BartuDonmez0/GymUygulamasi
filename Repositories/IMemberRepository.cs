@@ -2,6 +2,7 @@ using GymApp.Entities;
 
 namespace GymApp.Repositories;
 
+// Member için özel sorgu imzalarını tanımlar.
 public interface IMemberRepository : IRepository<Member>
 {
     Task<Member?> GetByEmailAsync(string email);

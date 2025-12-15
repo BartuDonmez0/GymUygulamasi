@@ -12,9 +12,8 @@
                     <h3 class="mb-0"><i class="bi bi-plus-circle"></i> Yeni Aktivite Ekle</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="CreateActivity" method="post" id="createActivityForm">
-                        @Html.AntiForgeryToken()
-                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                    <form id="createActivityForm" onsubmit="return createActivityViaApi(event)">
+                        <div id="validationSummary" class="text-danger mb-3" style="display: none;"></div>
 
                         <div class="mb-3">
                             <label asp-for="GymCenterId" class="form-label">Spor Salonu <span class="text-danger">*</span></label>
@@ -138,73 +137,125 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     
     <script>
-        // Form submit öncesi kontrol
-        document.getElementById('createActivityForm')?.addEventListener('submit', function(e) {
-            const gymCenterSelect = document.querySelector('select[name="GymCenterId"]');
-            const gymCenterId = gymCenterSelect?.value;
-            const activityType = document.querySelector('select[name="Type"]')?.value;
-            const name = document.querySelector('input[name="Name"]')?.value;
-            const description = document.querySelector('textarea[name="Description"]')?.value;
-            const duration = document.querySelector('input[name="Duration"]')?.value;
-            const price = document.querySelector('input[name="Price"]')?.value;
+        // API üzerinden aktivite oluşturma
+        async function createActivityViaApi(event) {
+            event.preventDefault();
             
-            // Konsola debug bilgisi yazdır
-            console.log('=== Form Submit Debug ===');
-            console.log('Form Data:', {
-                GymCenterId: gymCenterId,
-                GymCenterIdType: typeof gymCenterId,
-                Type: activityType,
-                Name: name,
-                Description: description,
-                Duration: duration,
-                Price: price
-            });
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            const validationSummary = document.getElementById('validationSummary');
             
-            // Select element'in durumunu kontrol et
-            if (gymCenterSelect) {
-                console.log('GymCenter Select:', {
-                    selectedIndex: gymCenterSelect.selectedIndex,
-                    selectedOptions: gymCenterSelect.selectedOptions.length,
-                    options: Array.from(gymCenterSelect.options).map(opt => ({ value: opt.value, text: opt.text }))
+            // Form verilerini topla (API camelCase bekliyor - JSON serializer camelCase kullanıyor)
+            // Sadece gerekli property'leri gönder (navigation property'ler gönderilmez)
+            const gymCenterIdValue = document.querySelector('select[name="GymCenterId"]').value;
+            const activityData = {
+                gymCenterId: parseInt(gymCenterIdValue) || 0,
+                name: document.querySelector('input[name="Name"]').value.trim(),
+                description: document.querySelector('textarea[name="Description"]').value.trim(),
+                type: parseInt(document.querySelector('select[name="Type"]').value) || 0,
+                duration: parseInt(document.querySelector('input[name="Duration"]').value) || 0,
+                price: parseFloat(document.querySelector('input[name="Price"]').value) || 0,
+                imageUrl: document.querySelector('input[name="ImageUrl"]')?.value.trim() || ''
+            };
+            
+            console.log('Gönderilecek activityData:', activityData);
+            
+            // Validasyon
+            if (!activityData.gymCenterId || activityData.gymCenterId <= 0) {
+                showValidationError('Lütfen bir spor salonu seçin.');
+                return false;
+            }
+            
+            if (!activityData.name || activityData.name.trim() === '') {
+                showValidationError('Aktivite adı zorunludur.');
+                return false;
+            }
+            
+            if (!activityData.type || activityData.type <= 0) {
+                showValidationError('Lütfen bir aktivite tipi seçin.');
+                return false;
+            }
+            
+            if (activityData.duration <= 0) {
+                showValidationError('Süre 1 dakikadan fazla olmalıdır.');
+                return false;
+            }
+            
+            if (activityData.price < 0) {
+                showValidationError('Fiyat 0 veya daha büyük olmalıdır.');
+                return false;
+            }
+            
+            // Loading durumu
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Kaydediliyor...';
+            validationSummary.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/api/activities', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(activityData)
                 });
-            }
-            
-            // Eğer GymCenterId seçilmemişse uyar
-            if (!gymCenterId || gymCenterId === '0' || gymCenterId === '') {
-                e.preventDefault();
-                alert('Lütfen bir spor salonu seçin.');
-                console.error('GymCenterId validation failed:', gymCenterId);
-                if (gymCenterSelect) {
-                    gymCenterSelect.focus();
-                    gymCenterSelect.classList.add('is-invalid');
+                
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        console.error('API Error Response:', errorData);
+                        
+                        if (errorData.errors) {
+                            // ModelState hatalarını göster
+                            const errorMessages = [];
+                            Object.keys(errorData.errors).forEach(key => {
+                                const fieldErrors = errorData.errors[key];
+                                if (Array.isArray(fieldErrors)) {
+                                    fieldErrors.forEach(err => {
+                                        errorMessages.push(`${key}: ${err}`);
+                                    });
+                                } else {
+                                    errorMessages.push(`${key}: ${fieldErrors}`);
+                                }
+                            });
+                            errorMessage = errorMessages.join('; ') || errorData.message || errorMessage;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing response:', parseError);
+                        const text = await response.text().catch(() => '');
+                        errorMessage = `HTTP ${response.status}: ${text || 'Bilinmeyen hata'}`;
+                    }
+                    throw new Error(errorMessage);
                 }
-                return false;
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Aktivite başarıyla oluşturuldu!');
+                    window.location.href = '/Admin/Admin/Activities';
+                } else {
+                    throw new Error(result.message || 'Aktivite oluşturulamadı');
+                }
+            } catch (error) {
+                console.error('Create error:', error);
+                showValidationError('Aktivite oluşturulurken hata oluştu: ' + error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
             }
             
-            // Eğer Type seçilmemişse uyar
-            if (!activityType || activityType === '0' || activityType === '') {
-                e.preventDefault();
-                alert('Lütfen bir aktivite tipi seçin.');
-                console.error('ActivityType validation failed:', activityType);
-                return false;
-            }
-            
-            // Form submit edilmeden önce değerleri tekrar kontrol et
-            console.log('Form validation passed, submitting...');
-            console.log('Final GymCenterId value:', gymCenterId);
-            
-            // FormData oluştur ve kontrol et
-            const formData = new FormData(e.target);
-            const formGymCenterId = formData.get('GymCenterId');
-            console.log('FormData GymCenterId:', formGymCenterId);
-            
-            if (!formGymCenterId || formGymCenterId === '0' || formGymCenterId === '') {
-                e.preventDefault();
-                alert('Form gönderilirken spor salonu değeri kayboldu. Lütfen tekrar deneyin.');
-                console.error('FormData validation failed:', formGymCenterId);
-                return false;
-            }
-        });
+            return false;
+        }
+        
+        function showValidationError(message) {
+            const validationSummary = document.getElementById('validationSummary');
+            validationSummary.innerHTML = '<ul class="mb-0"><li>' + message + '</li></ul>';
+            validationSummary.style.display = 'block';
+        }
     </script>
 }
 

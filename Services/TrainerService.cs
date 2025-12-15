@@ -5,27 +5,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GymApp.Services;
 
+// Antrenör (Trainer) ile ilgili iş kurallarını yöneten servis.
 public class TrainerService : ITrainerService
 {
     private readonly ITrainerRepository _trainerRepository;
     private readonly GymAppDbContext _context;
 
+    // Constructor - repository ve DbContext bağımlılıklarını alır.
     public TrainerService(ITrainerRepository trainerRepository, GymAppDbContext context)
     {
         _trainerRepository = trainerRepository;
         _context = context;
     }
 
+    // Tüm antrenörleri çalışma saatleriyle birlikte döndürür.
     public async Task<IEnumerable<Trainer>> GetAllTrainersAsync()
     {
         return await _trainerRepository.GetAllWithWorkingHoursAsync();
     }
 
+    // Id'ye göre tek bir antrenörü çalışma saatleriyle birlikte döndürür.
     public async Task<Trainer?> GetTrainerByIdAsync(int id)
     {
         return await _trainerRepository.GetWithWorkingHoursAsync(id);
     }
 
+    // Yeni antrenör kaydı oluşturur, GymCenter ve aktiviteler için doğrulama yapar.
     public async Task<Trainer> CreateTrainerAsync(Trainer trainer)
     {
         // GymCenterId'nin geçerli olup olmadığını kontrol et
@@ -115,6 +120,7 @@ public class TrainerService : ITrainerService
         return createdTrainer;
     }
 
+    // Var olan antrenör kaydını, çalışma saatlerini ve aktivitelerini günceller.
     public async Task<Trainer> UpdateTrainerAsync(Trainer trainer)
     {
         // Mevcut trainer'ı veritabanından çek (tracking için)
@@ -223,6 +229,7 @@ public class TrainerService : ITrainerService
         return existingTrainer;
     }
 
+    // Id'ye göre antrenör kaydını siler (varsa).
     public async Task DeleteTrainerAsync(int id)
     {
         var trainer = await _trainerRepository.GetByIdAsync(id);

@@ -4,20 +4,14 @@ using GymApp.Entities;
 
 namespace GymApp.Controllers;
 
-/// <summary>
-/// Trainer Controller - Antrenör listeleme ve filtreleme işlemlerini yönetir
-/// Read işlemi: Tüm antrenörleri listeleme ve filtreleme
-/// LINQ sorguları ile filtreleme: Aktivite ve çalışma gününe göre filtreleme yapar
-/// </summary>
+// Antrenörleri listeleyen ve filtreleyen controller.
 public class TrainerController : Controller
 {
     private readonly ITrainerService _trainerService;
     private readonly IGymCenterService _gymCenterService;
     private readonly IActivityService _activityService;
 
-    /// <summary>
-    /// Constructor - Dependency injection ile servisleri alır
-    /// </summary>
+    // Constructor - antrenör, salon ve aktivite servislerini alır.
     public TrainerController(ITrainerService trainerService, IGymCenterService gymCenterService, IActivityService activityService)
     {
         _trainerService = trainerService;
@@ -25,13 +19,7 @@ public class TrainerController : Controller
         _activityService = activityService;
     }
 
-    /// <summary>
-    /// Index - Antrenörleri listeler ve filtreler
-    /// LINQ sorguları ile filtreleme: Aktivite ID'sine ve çalışma gününe göre filtreleme
-    /// Sıralama: Müsaitlik günü sayısına ve uzmanlık alanına göre sıralama
-    /// </summary>
-    /// <param name="activityId">Aktivite ID'si (opsiyonel)</param>
-    /// <param name="dayOfWeek">Haftanın günü (0=Pazar, 1=Pazartesi, ...) (opsiyonel)</param>
+    // GET: /Trainer - Aktivite ve güne göre filtrelenmiş antrenör listesini gösterir.
     public async Task<IActionResult> Index(int? activityId, int? dayOfWeek)
     {
         // Antrenörleri çek

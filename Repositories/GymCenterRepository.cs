@@ -4,12 +4,15 @@ using GymApp.Entities;
 
 namespace GymApp.Repositories;
 
+// GymCenter tablosu için özel sorguları barındıran repository sınıfı.
 public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
 {
+    // Constructor - DbContext'i base repository'ye iletir.
     public GymCenterRepository(GymAppDbContext context) : base(context)
     {
     }
 
+    // Tüm spor salonlarını aktiviteleri ile birlikte döndürür.
     public async Task<IEnumerable<GymCenter>> GetWithActivitiesAsync()
     {
         return await _dbSet
@@ -17,6 +20,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .ToListAsync();
     }
 
+    // Id'ye göre tek bir spor salonunu aktiviteleri ile birlikte döndürür.
     public async Task<GymCenter?> GetWithActivitiesAsync(int id)
     {
         return await _dbSet
@@ -24,6 +28,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 
+    // Id'ye göre tek bir spor salonunu fotoğrafları ile birlikte döndürür.
     public async Task<GymCenter?> GetWithPhotosAsync(int id)
     {
         return await _dbSet
@@ -31,6 +36,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 
+    // Id'ye göre spor salonunu hem aktiviteleri hem fotoğrafları ile birlikte döndürür.
     public async Task<GymCenter?> GetFullDetailsAsync(int id)
     {
         return await _dbSet
@@ -39,6 +45,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 
+    // Id'ye göre spor salonunu çalışma saatleri ile birlikte döndürür.
     public async Task<GymCenter?> GetWithWorkingHoursAsync(int id)
     {
         return await _dbSet
@@ -46,6 +53,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 
+    // Tüm spor salonlarını çalışma saatleri ve aktiviteleri ile birlikte döndürür.
     public async Task<IEnumerable<GymCenter>> GetAllWithWorkingHoursAsync()
     {
         return await _dbSet
@@ -54,6 +62,7 @@ public class GymCenterRepository : Repository<GymCenter>, IGymCenterRepository
             .ToListAsync();
     }
 
+    // Gün ve aktiviteye göre filtrelenmiş spor salonu listesini döndürür.
     public async Task<IEnumerable<GymCenter>> GetFilteredAsync(int? dayOfWeek, int? activityId)
     {
         var query = _dbSet

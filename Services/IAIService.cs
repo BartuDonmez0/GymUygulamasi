@@ -1,5 +1,6 @@
 namespace GymApp.Services;
 
+// Yapay zeka servisleri için ortak sözleşme.
 public interface IAIService
 {
     Task<string> GetChatResponseAsync(string userMessage, string? userContext = null);

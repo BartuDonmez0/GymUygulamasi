@@ -3,6 +3,7 @@ using GymApp.Entities;
 
 namespace GymApp.Data;
 
+// Uygulamanın tüm entity'leri ve veritabanı tabloları için EF Core DbContext sınıfı.
 public class GymAppDbContext : DbContext
 {
     public GymAppDbContext(DbContextOptions<GymAppDbContext> options)

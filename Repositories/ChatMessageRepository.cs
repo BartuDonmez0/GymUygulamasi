@@ -4,12 +4,15 @@ using GymApp.Entities;
 
 namespace GymApp.Repositories;
 
+// ChatMessage tablosu için özel sorguları barındıran repository sınıfı.
 public class ChatMessageRepository : Repository<ChatMessage>, IChatMessageRepository
 {
+    // Constructor - DbContext'i base repository'ye iletir.
     public ChatMessageRepository(GymAppDbContext context) : base(context)
     {
     }
 
+    // Belirli bir üyeye ait sohbet mesajlarını, üye bilgisi ile birlikte döndürür.
     public async Task<IEnumerable<ChatMessage>> GetByMemberIdAsync(int memberId)
     {
         return await _dbSet
@@ -19,6 +22,7 @@ public class ChatMessageRepository : Repository<ChatMessage>, IChatMessageReposi
             .ToListAsync();
     }
 
+    // Tüm sohbet mesajlarını üye bilgisi ile birlikte döndürür.
     public async Task<IEnumerable<ChatMessage>> GetAllWithMembersAsync()
     {
         return await _dbSet

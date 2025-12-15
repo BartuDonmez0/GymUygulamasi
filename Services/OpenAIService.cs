@@ -3,12 +3,14 @@ using System.Text.Json;
 
 namespace GymApp.Services;
 
+// OpenAI ChatGPT API ile yapay zeka entegrasyonunu yöneten servis.
 public class OpenAIService : IAIService, IOpenAIService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
     private readonly string _apiUrl = "https://api.openai.com/v1/chat/completions";
 
+    // Constructor - HttpClient oluşturur ve OpenAI API anahtarını okur.
     public OpenAIService(IConfiguration configuration)
     {
         _httpClient = new HttpClient();
@@ -16,6 +18,7 @@ public class OpenAIService : IAIService, IOpenAIService
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
     }
 
+    // Genel sohbet için ChatGPT'den yanıt döndürür.
     public async Task<string> GetChatResponseAsync(string userMessage, string? userContext = null)
     {
         if (string.IsNullOrEmpty(_apiKey))
@@ -89,6 +92,7 @@ Türkçe cevap ver. Kısa, öz ve anlaşılır ol. Profesyonel ama samimi bir di
         }
     }
 
+    // Kullanıcının vücut bilgilerine göre egzersiz planı önerisi üretir.
     public async Task<string> GetExerciseRecommendationAsync(string bodyType, double? height = null, double? weight = null, string? photoDescription = null)
     {
         var context = $"Vücut tipi: {bodyType}";
@@ -101,6 +105,7 @@ Türkçe cevap ver. Kısa, öz ve anlaşılır ol. Profesyonel ama samimi bir di
         return await GetChatResponseAsync(message, context);
     }
 
+    // Kullanıcının vücut bilgilerine göre diyet planı önerisi üretir.
     public async Task<string> GetDietRecommendationAsync(string bodyType, double? height = null, double? weight = null, string? photoDescription = null)
     {
         var context = $"Vücut tipi: {bodyType}";
@@ -113,6 +118,7 @@ Türkçe cevap ver. Kısa, öz ve anlaşılır ol. Profesyonel ama samimi bir di
         return await GetChatResponseAsync(message, context);
     }
 
+    // Egzersiz planına göre vücuttaki olası değişimleri metinsel olarak açıklar.
     public async Task<string> GetVisualizationAsync(string exercisePlan, string bodyType)
     {
         var message = $"Aşağıdaki egzersiz planını takip edersem nasıl görüneceğimi açıkla:\n\n{exercisePlan}\n\nVücut tipim: {bodyType}\n\nBu planı takip ettikten sonra vücudumda ne gibi değişiklikler olacak? Hangi bölgelerde gelişme göreceğim?";

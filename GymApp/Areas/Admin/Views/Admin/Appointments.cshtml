@@ -5,9 +5,14 @@
 
 <div class="container-fluid mt-4">
     <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="mb-0"><i class="bi bi-calendar-check"></i> Randevular</h2>
-            <p class="text-muted">Toplam @Model.Count randevu</p>
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-0"><i class="bi bi-calendar-check"></i> Randevular</h2>
+                <p id="appointmentCount" class="text-muted">Toplam @Model.Count randevu</p>
+            </div>
+            <button type="button" class="btn btn-outline-secondary" onclick="loadAppointmentsFromApi()">
+                <i class="bi bi-arrow-repeat"></i> API'den Yenile
+            </button>
         </div>
     </div>
 
@@ -46,7 +51,7 @@
                                 <th>İşlemler</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="appointmentsTableBody">
                             @foreach (var appointment in Model)
                             {
                                 <tr>
@@ -82,30 +87,16 @@
                                     <td>
                                         @if (appointment.Status == AppointmentStatus.Pending)
                                         {
-                                            <form asp-action="UpdateAppointmentStatus" method="post" style="display: inline;">
-                                                <input type="hidden" name="id" value="@appointment.Id" />
-                                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Approved)" />
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-success me-1">
-                                                    <i class="bi bi-check-lg"></i> Onayla
-                                                </button>
-                                            </form>
-                                            <form asp-action="UpdateAppointmentStatus" method="post" style="display: inline;">
-                                                <input type="hidden" name="id" value="@appointment.Id" />
-                                                <input type="hidden" name="status" value="@((int)AppointmentStatus.Rejected)" />
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-danger me-1" onclick="return confirm('Bu randevuyu reddetmek istediğinize emin misiniz?');">
-                                                    <i class="bi bi-x-lg"></i> Reddet
-                                                </button>
-                                            </form>
-                                        }
-                                        <form asp-action="DeleteAppointment" method="post" style="display: inline;" onsubmit="return confirm('Bu randevuyu silmek istediğinize emin misiniz?');">
-                                            <input type="hidden" name="id" value="@appointment.Id" />
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i> Sil
+                                            <button type="button" class="btn btn-sm btn-success me-1" onclick="updateAppointmentStatus(@appointment.Id, 2, this)">
+                                                <i class="bi bi-check-lg"></i> Onayla
                                             </button>
-                                        </form>
+                                            <button type="button" class="btn btn-sm btn-danger me-1" onclick="updateAppointmentStatus(@appointment.Id, 3, this)">
+                                                <i class="bi bi-x-lg"></i> Reddet
+                                            </button>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteAppointment(@appointment.Id, this)">
+                                            <i class="bi bi-trash"></i> Sil
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -128,4 +119,209 @@
         </a>
     </div>
 </div>
+
+<script>
+    // API üzerinden randevuları yükleme
+    async function loadAppointmentsFromApi() {
+        const tbody = document.getElementById('appointmentsTableBody');
+        const countElement = document.getElementById('appointmentCount');
+
+        if (!tbody) return;
+
+        // Yükleniyor satırı
+        tbody.innerHTML = `<tr>
+            <td colspan="9" class="text-center">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Veriler API'den getiriliyor...
+            </td>
+        </tr>`;
+
+        try {
+            const response = await fetch('/api/api/appointments');
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Bilinmeyen API hatası');
+            }
+
+            const appointments = result.data || [];
+
+            if (countElement) {
+                countElement.textContent = `Toplam ${appointments.length} randevu (REST API üzerinden)`;
+            }
+
+            if (!appointments.length) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="9" class="text-center">
+                        <i class="bi bi-info-circle"></i> API'den randevu bulunamadı.
+                    </td>
+                </tr>`;
+                return;
+            }
+
+            const statusBadges = {
+                1: '<span class="badge bg-warning">Beklemede</span>',
+                2: '<span class="badge bg-success">Onaylandı</span>',
+                3: '<span class="badge bg-danger">Reddedildi</span>',
+                4: '<span class="badge bg-info">Tamamlandı</span>'
+            };
+
+            const rows = appointments.map(a => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const id = a.id || a.Id || 0;
+                const appointmentDate = a.appointmentDate || a.AppointmentDate;
+                const appointmentTime = a.appointmentTime || a.AppointmentTime || '';
+                const status = a.status || a.Status || 0;
+                const price = a.price || a.Price || 0;
+                
+                // Nested object'ler için güvenli erişim
+                const member = a.member || a.Member || {};
+                const trainer = a.trainer || a.Trainer || {};
+                const gymCenter = a.gymCenter || a.GymCenter || {};
+                const activity = a.activity || a.Activity || {};
+                
+                const memberName = (member.firstName || member.FirstName || '') + ' ' + (member.lastName || member.LastName || '');
+                const trainerName = (trainer.firstName || trainer.FirstName || '') + ' ' + (trainer.lastName || trainer.LastName || '');
+                const gymCenterName = gymCenter.name || gymCenter.Name || 'N/A';
+                const activityName = activity.name || activity.Name || 'N/A';
+                
+                const dateObj = appointmentDate ? new Date(appointmentDate) : new Date();
+                const formattedDate = dateObj.toLocaleDateString('tr-TR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                }) + ' ' + appointmentTime;
+
+                const statusBadge = statusBadges[status] || `<span class="badge bg-secondary">${status}</span>`;
+                
+                const actionButtons = status === 1 
+                    ? `<button type="button" class="btn btn-sm btn-success me-1" onclick="updateAppointmentStatus(${id}, 2, this)">
+                            <i class="bi bi-check-lg"></i> Onayla
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger me-1" onclick="updateAppointmentStatus(${id}, 3, this)">
+                            <i class="bi bi-x-lg"></i> Reddet
+                        </button>`
+                    : '';
+
+                return `<tr>
+                    <td>${id}</td>
+                    <td>${memberName || 'N/A'}</td>
+                    <td>${trainerName || 'N/A'}</td>
+                    <td>${gymCenterName}</td>
+                    <td>${formattedDate}</td>
+                    <td>${activityName}</td>
+                    <td>${price}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        ${actionButtons}
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteAppointment(${id}, this)">
+                            <i class="bi bi-trash"></i> Sil
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        } catch (error) {
+            console.error('API hata:', error);
+            tbody.innerHTML = `<tr>
+                <td colspan="9" class="text-center text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    API'den veriler alınırken hata oluştu: ${error.message}
+                </td>
+            </tr>`;
+            if (countElement) {
+                countElement.textContent = "Randevular yüklenemedi (API hatası)";
+            }
+        }
+    }
+
+    // PUT: API üzerinden randevu durumu güncelleme
+    async function updateAppointmentStatus(id, status, buttonElement) {
+        if (status === 3 && !confirm('Bu randevuyu reddetmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        const originalText = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const response = await fetch(`/api/api/appointments/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify({ status: status })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                await loadAppointmentsFromApi();
+                alert('Randevu durumu başarıyla güncellendi.');
+            } else {
+                throw new Error(result.message || 'Durum güncelleme başarısız');
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Randevu durumu güncellenirken hata oluştu: ' + error.message);
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalText;
+        }
+    }
+
+    // DELETE: API üzerinden randevu silme
+    async function deleteAppointment(id, buttonElement) {
+        if (!confirm('Bu randevuyu silmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        const originalText = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Siliniyor...';
+
+        try {
+            const response = await fetch(`/api/api/appointments/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                await loadAppointmentsFromApi();
+                alert('Randevu başarıyla silindi.');
+            } else {
+                throw new Error(result.message || 'Silme işlemi başarısız');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Randevu silinirken hata oluştu: ' + error.message);
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalText;
+        }
+    }
+
+    // Sayfa yüklendiğinde API'den verileri çek
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAppointmentsFromApi();
+    });
+</script>
 

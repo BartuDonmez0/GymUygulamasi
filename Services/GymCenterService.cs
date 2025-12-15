@@ -5,37 +5,44 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GymApp.Services;
 
+// Spor salonu (GymCenter) ile ilgili iş kurallarını yöneten servis.
 public class GymCenterService : IGymCenterService
 {
     private readonly IGymCenterRepository _gymCenterRepository;
     private readonly GymAppDbContext _context;
 
+    // Constructor - repository ve DbContext bağımlılıklarını alır.
     public GymCenterService(IGymCenterRepository gymCenterRepository, GymAppDbContext context)
     {
         _gymCenterRepository = gymCenterRepository;
         _context = context;
     }
 
+    // Tüm spor salonlarını çalışma saatleriyle birlikte döndürür.
     public async Task<IEnumerable<GymCenter>> GetAllGymCentersAsync()
     {
         return await _gymCenterRepository.GetAllWithWorkingHoursAsync();
     }
 
+    // Id'ye göre tek bir spor salonunu çalışma saatleriyle birlikte döndürür.
     public async Task<GymCenter?> GetGymCenterByIdAsync(int id)
     {
         return await _gymCenterRepository.GetWithWorkingHoursAsync(id);
     }
 
+    // Id'ye göre spor salonunu tüm detaylarıyla (aktiviteler, fotoğraflar vb.) döndürür.
     public async Task<GymCenter?> GetGymCenterWithDetailsAsync(int id)
     {
         return await _gymCenterRepository.GetFullDetailsAsync(id);
     }
 
+    // Yeni spor salonu kaydı oluşturur.
     public async Task<GymCenter> CreateGymCenterAsync(GymCenter gymCenter)
     {
         return await _gymCenterRepository.AddAsync(gymCenter);
     }
 
+    // Var olan spor salonu kaydını ve çalışma saatlerini günceller.
     public async Task<GymCenter> UpdateGymCenterAsync(GymCenter gymCenter)
     {
         // Mevcut çalışma saatlerini sil
@@ -63,6 +70,7 @@ public class GymCenterService : IGymCenterService
         return gymCenter;
     }
 
+    // Id'ye göre spor salonunu siler (varsa).
     public async Task DeleteGymCenterAsync(int id)
     {
         var gymCenter = await _gymCenterRepository.GetByIdAsync(id);
@@ -72,6 +80,7 @@ public class GymCenterService : IGymCenterService
         }
     }
 
+    // Gün ve aktiviteye göre filtrelenmiş spor salonu listesi döndürür.
     public async Task<IEnumerable<GymCenter>> GetFilteredGymCentersAsync(int? dayOfWeek, int? activityId)
     {
         return await _gymCenterRepository.GetFilteredAsync(dayOfWeek, activityId);

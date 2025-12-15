@@ -270,12 +270,8 @@
 
             if (data.success) {
                 // Rate limit kontrolü
-                if (data.response && (data.response.includes('429') || data.response.includes('Too Many Requests') || data.response.includes('çok fazla istek'))) {
+                if (data.response && (data.response.includes('429') || data.response.includes('Too Many Requests') || data.response.includes('çok fazla istek') || data.response.includes('Rate limit'))) {
                     addMessageToChat('ai', data.response);
-                    // Kullanıcıya ek bilgi göster
-                    setTimeout(() => {
-                        addMessageToChat('ai', '💡 İpucu: Rate limit hatası aldıysanız, lütfen 1-2 dakika bekleyip tekrar deneyin. OpenAI API\'si dakikada belirli sayıda istek kabul eder.');
-                    }, 2000);
                 } else {
                     addMessageToChat('ai', data.response);
                 }
@@ -374,14 +370,37 @@
         }
     }
 
-    function clearChat() {
-        if (confirm('Tüm sohbet geçmişini temizlemek istediğinize emin misiniz?')) {
+    async function clearChat() {
+        if (!confirm('Tüm sohbet geçmişini temizlemek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/AIRecommendation/ClearChat', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Frontend'de temizle
             document.getElementById('chatMessages').innerHTML = `
                 <div class="text-center p-4 text-muted">
                     <i class="bi bi-chat-quote fs-1 d-block mb-3"></i>
                     <p>Merhaba! Size nasıl yardımcı olabilirim?</p>
+                        <p class="small">Egzersiz planı, diyet önerileri veya sağlık sorularınız için bana sorabilirsiniz.</p>
                 </div>
             `;
+            } else {
+                alert('Hata: ' + (data.message || 'Sohbet geçmişi temizlenirken bir hata oluştu.'));
+            }
+        } catch (error) {
+            console.error('Clear chat error:', error);
+            alert('Bağlantı hatası: ' + error.message);
         }
     }
 

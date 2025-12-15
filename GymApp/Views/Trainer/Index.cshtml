@@ -1,225 +1,56 @@
-@model List<GymApp.Entities.Trainer>
-@using GymApp.Entities
 @{
     ViewData["Title"] = "Antrenörler";
-    var activities = ViewBag.Activities as IEnumerable<Activity> ?? new List<Activity>();
-    var selectedActivityId = ViewBag.SelectedActivityId as int?;
-    var selectedDayOfWeek = ViewBag.SelectedDayOfWeek as int?;
 }
 
 <div class="container px-3 px-md-4">
-<!-- Filtreleme Formu -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-12 col-md-4">
-                <label for="dayOfWeek" class="form-label text-dark"><i class="bi bi-calendar-week"></i> Çalışma Günü</label>
-                <select class="form-select" id="dayOfWeek">
-                    <option value="">Tüm Günler</option>
-                    @if (selectedDayOfWeek == 0) { <option value="0" selected>Pazar</option> } else { <option value="0">Pazar</option> }
-                    @if (selectedDayOfWeek == 1) { <option value="1" selected>Pazartesi</option> } else { <option value="1">Pazartesi</option> }
-                    @if (selectedDayOfWeek == 2) { <option value="2" selected>Salı</option> } else { <option value="2">Salı</option> }
-                    @if (selectedDayOfWeek == 3) { <option value="3" selected>Çarşamba</option> } else { <option value="3">Çarşamba</option> }
-                    @if (selectedDayOfWeek == 4) { <option value="4" selected>Perşembe</option> } else { <option value="4">Perşembe</option> }
-                    @if (selectedDayOfWeek == 5) { <option value="5" selected>Cuma</option> } else { <option value="5">Cuma</option> }
-                    @if (selectedDayOfWeek == 6) { <option value="6" selected>Cumartesi</option> } else { <option value="6">Cumartesi</option> }
-                </select>
-            </div>
-            <div class="col-12 col-md-4">
-                <label for="activityId" class="form-label text-dark"><i class="bi bi-list-check"></i> Aktivite</label>
-                <select class="form-select" id="activityId">
-                    <option value="">Tümü</option>
-                    @if (activities != null && activities.Any())
-                    {
-                        @foreach (var activity in activities)
-                        {
-                            @if (selectedActivityId == activity.Id)
-                            {
-                                <option value="@activity.Id" selected>@activity.Name</option>
-                            }
-                            else
-                            {
-                                <option value="@activity.Id">@activity.Name</option>
-                            }
-                        }
-                    }
-                </select>
-            </div>
-            <div class="col-12 col-md-4 d-flex align-items-end">
-                <button type="button" class="btn btn-dark w-100 me-2" onclick="applyFilters()">
-                    <i class="bi bi-funnel"></i> Filtrele
-                </button>
-                <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
-                    <i class="bi bi-x-circle"></i> Temizle
-                </button>
+    <!-- Filtreleme Formu -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label for="dayOfWeek" class="form-label text-dark">
+                        <i class="bi bi-calendar-week"></i> Çalışma Günü
+                    </label>
+                    <select class="form-select" id="dayOfWeek">
+                        <option value="">Tüm Günler</option>
+                        <option value="0">Pazar</option>
+                        <option value="1">Pazartesi</option>
+                        <option value="2">Salı</option>
+                        <option value="3">Çarşamba</option>
+                        <option value="4">Perşembe</option>
+                        <option value="5">Cuma</option>
+                        <option value="6">Cumartesi</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="activityId" class="form-label text-dark">
+                        <i class="bi bi-list-check"></i> Aktivite
+                    </label>
+                    <select class="form-select" id="activityId">
+                        <option value="">Tümü</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4 d-flex align-items-end gap-2">
+                    <button type="button" class="btn btn-dark w-100" onclick="applyFilters()">
+                        <i class="bi bi-funnel"></i> Filtrele
+                    </button>
+                    <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
+                        <i class="bi bi-x-circle"></i> Temizle
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-@if (Model != null && Model.Any())
-{
-    <div class="row g-4">
-        @foreach (var trainer in Model)
-        {
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100 border-0" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;" 
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" 
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
-                    <div class="card-body p-4">
-                        <!-- Profil Fotoğrafı ve İsim -->
-                        <div class="text-center mb-3">
-                            @if (!string.IsNullOrEmpty(trainer.ProfilePhotoUrl))
-                            {
-                                <img src="@trainer.ProfilePhotoUrl" alt="@trainer.FirstName @trainer.LastName" 
-                                     class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; border: 4px solid #f0f0f0;" 
-                                     onerror="this.src='https://via.placeholder.com/100?text=@trainer.FirstName[0]'" />
-                            }
-                            else
-                            {
-                                <div class="rounded-circle bg-dark d-flex align-items-center justify-content-center text-white mx-auto mb-3" 
-                                     style="width: 100px; height: 100px; font-weight: bold; font-size: 2rem;">
-                                    @trainer.FirstName[0]@trainer.LastName[0]
-                                </div>
-                            }
-                            <h4 class="card-title mb-1 fw-bold text-dark">@trainer.FirstName @trainer.LastName</h4>
-                            <p class="text-muted small mb-0">@trainer.Email</p>
-                        </div>
-                        
-                        <hr class="my-3">
-                        
-                        <!-- Müsaitlik -->
-                        @{
-                            var workingHoursDisplay = "Belirtilmemiş";
-                            var workingHoursCount = 0;
-                            if (!string.IsNullOrEmpty(trainer.WorkingHoursJson) && trainer.WorkingHoursJson != "[]")
-                            {
-                                try
-                                {
-                                    var jsonDoc = System.Text.Json.JsonDocument.Parse(trainer.WorkingHoursJson);
-                                    var workingHoursList = new List<string>();
-                                    var dayNames = new[] { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
-                                    
-                                    foreach (var item in jsonDoc.RootElement.EnumerateArray())
-                                    {
-                                        if (item.TryGetProperty("Day", out var dayElement) && 
-                                            dayElement.ValueKind == System.Text.Json.JsonValueKind.Number)
-                                        {
-                                            var day = dayElement.GetInt32();
-                                            var dayName = day >= 0 && day < dayNames.Length ? dayNames[day] : $"Gün {day}";
-                                            
-                                            if (item.TryGetProperty("Hours", out var hoursElement) && 
-                                                hoursElement.ValueKind == System.Text.Json.JsonValueKind.Array)
-                                            {
-                                                var hours = hoursElement.EnumerateArray()
-                                                    .Select(h => h.GetString())
-                                                    .Where(h => !string.IsNullOrEmpty(h))
-                                                    .ToList();
-                                                
-                                                if (hours.Any())
-                                                {
-                                                    workingHoursList.Add($"{dayName}: {string.Join(", ", hours)}");
-                                                    workingHoursCount++;
-                                                }
-                                            }
-                                            else if (item.TryGetProperty("TimeRange", out var timeRangeElement) && 
-                                                     timeRangeElement.ValueKind == System.Text.Json.JsonValueKind.String)
-                                            {
-                                                var timeRange = timeRangeElement.GetString();
-                                                if (!string.IsNullOrEmpty(timeRange))
-                                                {
-                                                    workingHoursList.Add($"{dayName} {timeRange}");
-                                                    workingHoursCount++;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (workingHoursList.Any())
-                                    {
-                                        workingHoursDisplay = string.Join(" | ", workingHoursList);
-                                    }
-                                }
-                                catch
-                                {
-                                    workingHoursDisplay = "Belirtilmemiş";
-                                }
-                            }
-                        }
-                        
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-clock-fill text-dark me-2"></i>
-                                <strong class="small text-dark">Müsaitlik:</strong>
-                            </div>
-                            @if (workingHoursDisplay != "Belirtilmemiş" && workingHoursCount > 0)
-                            {
-                                <p class="card-text mb-0 small text-dark">@workingHoursDisplay</p>
-                            }
-                            else
-                            {
-                                <p class="card-text mb-0 small text-muted">@workingHoursDisplay</p>
-                            }
-                        </div>
-                        
-                        <!-- Uzmanlık Alanı - Müsaitliğin Altında (Detaylı) -->
-                        @if (!string.IsNullOrEmpty(trainer.Specialization))
-                        {
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-star-fill text-dark me-2"></i>
-                                    <strong class="small text-dark">Uzmanlık Alanları:</strong>
-                                </div>
-                                <p class="card-text mb-0 small text-dark">@trainer.Specialization</p>
-                            </div>
-                        }
-                        
-                        <!-- Telefon -->
-                        <div class="mb-3">
-                            <p class="card-text mb-0 small">
-                                <i class="bi bi-telephone-fill text-dark me-2"></i>
-                                <span class="text-dark">@trainer.Phone</span>
-                            </p>
-                        </div>
-                        
-                        <!-- Spor Salonu -->
-                        @if (trainer.GymCenter != null)
-                        {
-                            <div class="mb-3 p-2 bg-light rounded">
-                                <p class="mb-1 small">
-                                    <i class="bi bi-building text-dark me-2"></i>
-                                    <strong class="text-dark">Spor Salonu:</strong>
-                                </p>
-                                <p class="mb-0 small fw-bold text-dark">@trainer.GymCenter.Name</p>
-                            </div>
-                        }
-                        
-                        <!-- Butonlar -->
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="@Url.Action("Create", "Appointment", new { trainerId = trainer.Id })" 
-                               class="btn btn-dark btn-sm">
-                                <i class="bi bi-calendar-plus"></i> Randevu Al
-                            </a>
-                            @if (trainer.GymCenter != null)
-                            {
-                                <a href="@Url.Action("Details", "GymCenter", new { id = trainer.GymCenter.Id })" 
-                                   class="btn btn-outline-dark btn-sm">
-                                    <i class="bi bi-building"></i> Spor Salonuna Git
-                                </a>
-                            }
-                        </div>
-                    </div>
-                </div>
+    <!-- Antrenörler Container - API'den dinamik yüklenecek -->
+    <div id="trainersContainer">
+        <div class="row g-4" id="trainersRow">
+            <div class="col-12 text-center">
+                <span class="spinner-border" role="status"></span>
+                <p class="mt-2">Antrenörler yükleniyor...</p>
             </div>
-        }
+        </div>
     </div>
-}
-else
-{
-    <div class="alert alert-info text-center">
-        <i class="bi bi-info-circle"></i> Henüz antrenör bulunmamaktadır.
-    </div>
-}
 </div>
 
 <style>
@@ -256,9 +87,84 @@ else
         border-color: #000;
         color: #fff;
     }
+
+    @@media (max-width: 768px) {
+        .card-body {
+            padding: 1.25rem !important;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+        }
+
+        .card-text {
+            font-size: 0.9rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .card-body {
+            padding: 1rem !important;
+        }
+
+        .card-title {
+            font-size: 1rem;
+        }
+
+        .card-text {
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            width: 100%;
+            font-size: 0.875rem;
+        }
+    }
 </style>
 
 <script>
+    // Aktivite listesini API'den yükle
+    async function loadActivities() {
+        try {
+            const response = await fetch('/api/api/activities');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const result = await response.json();
+            if (result.success && result.data) {
+                // Dropdown elementi seç
+                const select = document.getElementById('activityId');
+                
+                // Duplicate kontrolü için Set kullan - aynı ID'li aktiviteleri tekrar eklememek için
+                const addedIds = new Set();
+                
+                // Her aktiviteyi kontrol et ve dropdown'a ekle
+                result.data.forEach(activity => {
+                    // Property isimleri hem camelCase hem PascalCase destekleniyor (API response formatına göre)
+                    const activityId = activity.id || activity.Id || 0;
+                    const activityName = activity.name || activity.Name || '';
+                    
+                    // Aynı ID'li aktivite zaten eklenmişse atla (duplicate önleme)
+                    // Geçerli ID ve isim kontrolü yap
+                    if (activityId > 0 && !addedIds.has(activityId) && activityName) {
+                        // ID'yi Set'e ekle (bir sonraki kontrol için)
+                        addedIds.add(activityId);
+                        
+                        // Yeni option elementi oluştur
+                        const option = document.createElement('option');
+                        option.value = activityId; // Option değeri aktivite ID'si
+                        option.textContent = activityName; // Görünen metin aktivite adı
+                        
+                        // Dropdown'a ekle
+                        select.appendChild(option);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Aktiviteler yüklenirken hata:', error);
+        }
+    }
+
+    // Filtreleri uygula
     function applyFilters() {
         const dayOfWeek = document.getElementById('dayOfWeek').value;
         const activityId = document.getElementById('activityId').value;
@@ -267,11 +173,223 @@ else
         if (dayOfWeek) params.append('dayOfWeek', dayOfWeek);
         if (activityId) params.append('activityId', activityId);
         
-        const url = '@Url.Action("Index", "Trainer")' + (params.toString() ? '?' + params.toString() : '');
-        window.location.href = url;
+        loadTrainersFromApi(activityId, dayOfWeek);
     }
 
+    // Filtreleri temizle
     function clearFilters() {
-        window.location.href = '@Url.Action("Index", "Trainer")';
+        document.getElementById('dayOfWeek').value = '';
+        document.getElementById('activityId').value = '';
+        loadTrainersFromApi(null, null);
     }
+
+    // API üzerinden antrenörleri yükleme (LINQ filtreleme ile)
+    async function loadTrainersFromApi(activityId, dayOfWeek) {
+        const trainersRow = document.getElementById('trainersRow');
+        if (!trainersRow) return;
+
+        trainersRow.innerHTML = '<div class="col-12 text-center"><span class="spinner-border"></span> Yükleniyor...</div>';
+
+        try {
+            // API'den tüm antrenörleri çek (LINQ sorgusu ile)
+            const response = await fetch('/api/api/trainers');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message || 'API hatası');
+
+            let trainers = result.data || [];
+
+            // Aktivite filtresi (client-side filtreleme)
+            if (activityId) {
+                trainers = trainers.filter(t => {
+                    // Property isimleri hem camelCase hem PascalCase destekleniyor
+                    const activities = t.activities || t.Activities || [];
+                    return Array.isArray(activities) && activities.some(a => {
+                        const actId = a.id || a.Id || 0;
+                        return actId === parseInt(activityId);
+                    });
+                });
+            }
+
+            // Gün filtresi (WorkingHoursJson'dan parse edilir)
+            if (dayOfWeek !== null && dayOfWeek !== undefined && dayOfWeek !== '') {
+                trainers = trainers.filter(t => {
+                    try {
+                        const workingHoursJson = t.workingHoursJson || t.WorkingHoursJson || '[]';
+                        if (!workingHoursJson || workingHoursJson === '[]') return false;
+                        const workingHours = JSON.parse(workingHoursJson);
+                        if (!Array.isArray(workingHours)) return false;
+                        return workingHours.some(wh => {
+                            const day = wh.Day !== undefined ? wh.Day : (wh.day !== undefined ? wh.day : undefined);
+                            return day === parseInt(dayOfWeek);
+                        });
+                    } catch {
+                        return false;
+                    }
+                });
+            }
+
+            // Antrenörleri render et
+            if (!trainers.length) {
+                trainersRow.innerHTML = '<div class="col-12"><div class="alert alert-info text-center"><i class="bi bi-info-circle"></i> Filtrelere uygun antrenör bulunamadı.</div></div>';
+                return;
+            }
+
+            const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+            
+            const trainerCards = trainers.map(t => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const id = t.id || t.Id || 0;
+                const firstName = t.firstName || t.FirstName || '';
+                const lastName = t.lastName || t.LastName || '';
+                const email = t.email || t.Email || '';
+                const phone = t.phone || t.Phone || '';
+                const profilePhotoUrl = t.profilePhotoUrl || t.ProfilePhotoUrl || '';
+                const workingHoursJson = t.workingHoursJson || t.WorkingHoursJson || '[]';
+                const gymCenterName = t.gymCenterName || t.GymCenterName || '';
+                const specialization = t.specialization || t.Specialization || '';
+                
+                // İlk harfleri güvenli şekilde al
+                const firstInitial = firstName && firstName.length > 0 ? firstName[0] : '?';
+                const lastInitial = lastName && lastName.length > 0 ? lastName[0] : '?';
+                
+                // Fotoğraf HTML
+                const photoHtml = profilePhotoUrl 
+                    ? `<img src="${profilePhotoUrl}" alt="${firstName} ${lastName}" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; border: 4px solid #f0f0f0;" onerror="this.src='https://via.placeholder.com/100?text=${firstInitial}'" />`
+                    : `<div class="rounded-circle bg-dark d-flex align-items-center justify-content-center text-white mx-auto mb-3" style="width: 100px; height: 100px; font-weight: bold; font-size: 2rem;">${firstInitial}${lastInitial}</div>`;
+
+                // Çalışma saatleri parse et
+                let workingHoursDisplay = "Belirtilmemiş";
+                try {
+                    if (workingHoursJson && workingHoursJson !== '[]') {
+                        const workingHours = JSON.parse(workingHoursJson);
+                        const workingHoursList = [];
+                        if (Array.isArray(workingHours)) {
+                            workingHours.forEach(item => {
+                                const day = item.Day !== undefined ? item.Day : (item.day !== undefined ? item.day : undefined);
+                                if (day !== undefined) {
+                                    const dayName = dayNames[day] || `Gün ${day}`;
+                                    const hours = item.Hours || item.hours;
+                                    const timeRange = item.TimeRange || item.timeRange;
+                                    
+                                    if (hours && Array.isArray(hours)) {
+                                        if (hours.length > 0) {
+                                            workingHoursList.push(`${dayName}: ${hours.join(", ")}`);
+                                        }
+                                    } else if (timeRange) {
+                                        workingHoursList.push(`${dayName} ${timeRange}`);
+                                    }
+                                }
+                            });
+                        }
+                        if (workingHoursList.length > 0) {
+                            workingHoursDisplay = workingHoursList.join(" | ");
+                        }
+                    }
+                } catch (e) {
+                    console.error('WorkingHoursJson parse hatası:', e);
+                    workingHoursDisplay = "Belirtilmemiş";
+                }
+
+                // Spor salonu HTML
+                const gymCenterHtml = gymCenterName 
+                    ? `<div class="mb-3 p-2 bg-light rounded">
+                        <p class="mb-1 small">
+                            <i class="bi bi-building text-dark me-2"></i>
+                            <strong class="text-dark">Spor Salonu:</strong>
+                        </p>
+                        <p class="mb-0 small fw-bold text-dark">${gymCenterName}</p>
+                    </div>`
+                    : '';
+
+                // Uzmanlık HTML - Tekrar eden uzmanlıkları kaldır
+                let specializationDisplay = '';
+                if (specialization) {
+                    // Virgülle ayır, trim yap, boş olanları filtrele, unique yap
+                    const specializations = specialization
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(s => s.length > 0);
+                    const uniqueSpecializations = [...new Set(specializations)];
+                    specializationDisplay = uniqueSpecializations.join(', ');
+                }
+                
+                const specializationHtml = specializationDisplay 
+                    ? `<div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-star-fill text-dark me-2"></i>
+                            <strong class="small text-dark">Uzmanlık Alanları:</strong>
+                        </div>
+                        <p class="card-text mb-0 small text-dark">${specializationDisplay}</p>
+                    </div>`
+                    : '';
+
+                return `<div class="col-12 col-md-6 col-lg-4">
+                    <div class="card shadow-sm h-100 border-0" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-3">${photoHtml}</div>
+                            <h4 class="card-title mb-1 fw-bold text-dark">${firstName} ${lastName}</h4>
+                            <p class="text-muted small mb-0">${email}</p>
+                            <hr class="my-3">
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-clock-fill text-dark me-2"></i>
+                                    <strong class="small text-dark">Müsaitlik:</strong>
+                                </div>
+                                <p class="card-text mb-0 small ${workingHoursDisplay !== 'Belirtilmemiş' ? 'text-dark' : 'text-muted'}">${workingHoursDisplay}</p>
+                            </div>
+                            ${specializationHtml}
+                            <div class="mb-3">
+                                <p class="card-text mb-0 small">
+                                    <i class="bi bi-telephone-fill text-dark me-2"></i>
+                                    <span class="text-dark">${phone}</span>
+                                </p>
+                            </div>
+                            ${gymCenterHtml}
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="/Appointment/Create?trainerId=${id}" class="btn btn-dark btn-sm">
+                                    <i class="bi bi-calendar-plus"></i> Randevu Al
+                                </a>
+                                ${t.gymCenterId ? `<a href="/GymCenter/Details/${t.gymCenterId}" class="btn btn-outline-dark btn-sm">
+                                    <i class="bi bi-building"></i> Spor Salonuna Git
+                                </a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            trainersRow.innerHTML = trainerCards;
+        } catch (error) {
+            console.error('API hata:', error);
+            trainersRow.innerHTML = '<div class="col-12"><div class="alert alert-danger text-center"><i class="bi bi-exclamation-triangle"></i> API\'den veriler alınırken hata oluştu: ' + error.message + '</div></div>';
+        }
+    }
+
+    // Sayfa yüklendiğinde API'den verileri çek
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aktivite listesini yükle
+        loadActivities();
+        
+        // URL parametrelerinden filtreleri al
+        const urlParams = new URLSearchParams(window.location.search);
+        const activityId = urlParams.get('activityId');
+        const dayOfWeek = urlParams.get('dayOfWeek');
+        
+        // Select'leri doldur
+        if (dayOfWeek) {
+            document.getElementById('dayOfWeek').value = dayOfWeek;
+        }
+        
+        // Antrenörleri yükle
+        loadTrainersFromApi(activityId, dayOfWeek);
+        
+        // Aktivite select'i doldurulduktan sonra seçili değeri ayarla
+        setTimeout(() => {
+            if (activityId) {
+                document.getElementById('activityId').value = activityId;
+            }
+        }, 500);
+    });
 </script>

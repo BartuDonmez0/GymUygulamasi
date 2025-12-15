@@ -1,9 +1,12 @@
 namespace GymApp.Entities;
 
-// JSON formatında çalışma saatleri için model
+// JSON formatında saklanan çalışma saati kayıtları için yardımcı model.
 public class WorkingHoursJson
 {
-    public int Day { get; set; } // 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
-    public string TimeRange { get; set; } = string.Empty; // "09:00-18:00" formatında
+    // Haftanın günü (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)
+    public int Day { get; set; }
+
+    // Saat aralığı metni (örnek: "09:00-18:00")
+    public string TimeRange { get; set; } = string.Empty;
 }
 

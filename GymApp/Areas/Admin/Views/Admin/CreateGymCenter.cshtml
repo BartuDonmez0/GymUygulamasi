@@ -11,8 +11,9 @@
                     <h3 class="mb-0"><i class="bi bi-plus-circle"></i> Yeni Spor Salonu Ekle</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="CreateGymCenter" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <form id="createGymCenterForm" onsubmit="return createGymCenterViaApi(event)">
+                        <div id="validationSummary" class="text-danger mb-3" style="display: none;"></div>
+                        <div id="successMessage" class="alert alert-success mb-3" style="display: none;"></div>
 
                         <div class="mb-3">
                             <label asp-for="Name" class="form-label">Spor Salonu Adı</label>
@@ -259,5 +260,121 @@
                 return false;
             }
         });
+    </script>
+
+<script>
+    // API üzerinden spor salonu oluşturma
+    async function createGymCenterViaApi(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        const validationSummary = document.getElementById('validationSummary');
+        const successMessage = document.getElementById('successMessage');
+        
+        // Çalışma saatlerini güncelle
+        updateWorkingHoursJson();
+        const workingHoursJson = document.getElementById('workingHoursJsonInput')?.value || '[]';
+        
+        // API camelCase bekliyor
+        const gymCenterData = {
+            name: document.querySelector('input[name="Name"]').value.trim(),
+            description: document.querySelector('textarea[name="Description"]')?.value.trim() || '',
+            address: document.querySelector('textarea[name="Address"]').value.trim(),
+            phone: document.querySelector('input[name="Phone"]').value.trim(),
+            email: document.querySelector('input[name="Email"]').value.trim(),
+            imageUrl: document.querySelector('input[name="ImageUrl"]')?.value.trim() || '',
+            isActive: true,
+            workingHoursJson: workingHoursJson,
+            advertisement: document.querySelector('textarea[name="Advertisement"]')?.value.trim() || ''
+        };
+        
+        // Validasyon
+        if (!gymCenterData.name || gymCenterData.name.trim() === '') {
+            showValidationError('Spor salonu adı zorunludur.');
+            return false;
+        }
+        
+        const workingHours = JSON.parse(workingHoursJson);
+        if (workingHours.length === 0) {
+            showValidationError('Lütfen en az bir gün için çalışma saatleri ekleyiniz.');
+            return false;
+        }
+        
+        // Loading durumu
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Kaydediliyor...';
+        validationSummary.style.display = 'none';
+        successMessage.style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/api/gym-centers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify(gymCenterData)
+            });
+            
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        console.error('API Error Response:', errorData);
+                        
+                        if (errorData.errors) {
+                            // ModelState hatalarını göster
+                            const errorMessages = [];
+                            Object.keys(errorData.errors).forEach(key => {
+                                const fieldErrors = errorData.errors[key];
+                                if (Array.isArray(fieldErrors)) {
+                                    fieldErrors.forEach(err => {
+                                        errorMessages.push(`${key}: ${err}`);
+                                    });
+                                } else {
+                                    errorMessages.push(`${key}: ${fieldErrors}`);
+                                }
+                            });
+                            errorMessage = errorMessages.join('; ') || errorData.message || errorMessage;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing response:', parseError);
+                        const text = await response.text().catch(() => '');
+                        errorMessage = `HTTP ${response.status}: ${text || 'Bilinmeyen hata'}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+            
+            const result = await response.json();
+            if (result.success) {
+                successMessage.textContent = 'Spor salonu başarıyla oluşturuldu! Yönlendiriliyorsunuz...';
+                successMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '/Admin/Admin/GymCenters';
+                }, 2000);
+            } else {
+                throw new Error(result.message || 'Spor salonu oluşturulamadı');
+            }
+        } catch (error) {
+            console.error('Create gym center error:', error);
+            showValidationError('Spor salonu oluşturulurken hata oluştu: ' + error.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+        
+        return false;
+    }
+    
+    function showValidationError(message) {
+        const validationSummary = document.getElementById('validationSummary');
+        validationSummary.innerHTML = '<ul class="mb-0"><li>' + message + '</li></ul>';
+        validationSummary.style.display = 'block';
+    }
     </script>
 }

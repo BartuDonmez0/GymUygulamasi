@@ -8,39 +8,28 @@ using GymApp.Services;
 
 namespace GymApp.Controllers;
 
-/// <summary>
-/// Account Controller - Kullanıcı kimlik doğrulama ve yetkilendirme işlemlerini yönetir
-/// Rol bazlı yetkilendirme: Admin ve Üye rolleri desteklenir
-/// </summary>
+// Kullanıcı giriş, kayıt, profil görüntüleme ve çıkış işlemlerini yöneten controller.
 public class AccountController : Controller
 {
     private readonly IAccountService _accountService;
-    // Admin kullanıcı bilgileri - Rol bazlı yetkilendirme için sabit değerler
+    // Admin kullanıcı bilgileri - rol bazlı yetkilendirme için sabit değerler
     private const string AdminEmail = "G231210561@sakarya.edu.tr";
     private const string AdminPassword = "sau";
 
-    /// <summary>
-    /// Constructor - Dependency injection ile IAccountService'i alır
-    /// </summary>
+    // Constructor - IAccountService bağımlılığını alır.
     public AccountController(IAccountService accountService)
     {
         _accountService = accountService;
     }
 
-    /// <summary>
-    /// Login GET - Giriş sayfasını gösterir
-    /// </summary>
+    // GET: /Account/Login - Giriş formunu gösterir.
     [HttpGet]
     public IActionResult Login()
     {
         return View();
     }
 
-    /// <summary>
-    /// Login POST - Kullanıcı giriş işlemini gerçekleştirir
-    /// Rol bazlı yetkilendirme: Admin veya Üye kontrolü yapar
-    /// Server-side validation: Email ve password boş olamaz kontrolü
-    /// </summary>
+    // POST: /Account/Login - Kullanıcıyı e‑posta/şifre ile sisteme giriş yaptırır.
     [HttpPost]
     [ValidateAntiForgeryToken] // CSRF koruması - Güvenlik için anti-forgery token kontrolü
     public async Task<IActionResult> Login(string email, string password)
@@ -141,19 +130,14 @@ public class AccountController : Controller
         return View();
     }
 
-    /// <summary>
-    /// Register GET - Kullanıcı kayıt sayfasını gösterir
-    /// </summary>
+    // GET: /Account/Register - Kayıt formunu gösterir.
     [HttpGet]
     public IActionResult Register()
     {
         return View();
     }
 
-    /// <summary>
-    /// Register POST - Yeni kullanıcı kayıt işlemini gerçekleştirir
-    /// Server-side validation: ModelState.IsValid kontrolü ve email tekrar kontrolü
-    /// </summary>
+    // POST: /Account/Register - Yeni kullanıcı kaydı oluşturur.
     [HttpPost]
     [ValidateAntiForgeryToken] // CSRF koruması
     public async Task<IActionResult> Register(Member model)
@@ -218,10 +202,7 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    /// <summary>
-    /// Profile - Kullanıcı profil bilgilerini gösterir
-    /// Authorization: Giriş yapmış kullanıcılar erişebilir
-    /// </summary>
+    // GET: /Account/Profile - Oturum açmış kullanıcının profilini gösterir.
     public async Task<IActionResult> Profile()
     {
         var userId = HttpContext.Session.GetInt32("UserId");
@@ -266,19 +247,13 @@ public class AccountController : Controller
         return View(member);
     }
 
-    /// <summary>
-    /// AccessDenied - Yetkisiz erişim sayfasını gösterir
-    /// Authorization: Yetkisiz erişim denemelerinde gösterilir
-    /// </summary>
+    // GET: /Account/AccessDenied - Yetkisiz erişim sayfasını gösterir.
     public IActionResult AccessDenied()
     {
         return View();
     }
 
-    /// <summary>
-    /// Logout - Kullanıcı çıkış işlemini gerçekleştirir
-    /// Session temizlenir, authentication cookie silinir ve çıkış mesajı için cookie set edilir
-    /// </summary>
+    // GET: /Account/Logout - Kullanıcıyı sistemden çıkarır.
     public async Task<IActionResult> Logout()
     {
         // Authentication cookie'yi temizle
@@ -294,11 +269,7 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    /// <summary>
-    /// DeleteProfile POST - Kullanıcı profil silme işlemini gerçekleştirir
-    /// Authorization: Admin hesapları silinemez, sadece User rolü erişebilir
-    /// CRUD işlemi: Delete operasyonu
-    /// </summary>
+    // POST: /Account/DeleteProfile - Üyenin kendi profilini silmesini sağlar (Admin hariç).
     [HttpPost]
     [ValidateAntiForgeryToken] // CSRF koruması
     [Authorize(Roles = "User")] // Rol bazlı yetkilendirme: Sadece User rolü erişebilir (Admin erişemez)

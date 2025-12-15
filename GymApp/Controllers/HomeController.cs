@@ -7,34 +7,39 @@ using GymApp.Services;
 
 namespace GymApp.Controllers;
 
+// Ana sayfa, gizlilik ve veritabanı test ekranlarını yöneten controller.
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly GymAppDbContext _context;
 
+    // Constructor - logger ve DbContext bağımlılıklarını alır.
     public HomeController(ILogger<HomeController> logger, GymAppDbContext context)
     {
         _logger = logger;
         _context = context;
     }
 
+    // GET: /Home/Index - Ana sayfayı gösterir.
     public IActionResult Index()
     {
         return View();
     }
 
+    // GET: /Home/Privacy - Gizlilik metni sayfasını gösterir.
     public IActionResult Privacy()
     {
         return View();
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    // Uygulama hata sayfasını gösterir.
     public IActionResult Error()
     {
         return View(new Entities.ErrorViewModel { RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
-    // Veritabanı bağlantısını test etmek için
+    // Veritabanı bağlantısını ve temel tabloları test etmek için.
     public async Task<IActionResult> TestDatabase()
     {
         try

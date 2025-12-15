@@ -3,30 +3,36 @@ using GymApp.Repositories;
 
 namespace GymApp.Services;
 
+// Randevu (Appointment) ile ilgili iş kurallarını yöneten servis.
 public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _appointmentRepository;
 
+    // Constructor - randevu repository bağımlılığını alır.
     public AppointmentService(IAppointmentRepository appointmentRepository)
     {
         _appointmentRepository = appointmentRepository;
     }
 
+    // Tüm randevuları detay bilgileriyle birlikte döndürür.
     public async Task<IEnumerable<Appointment>> GetAllAppointmentsAsync()
     {
         return await _appointmentRepository.GetWithDetailsAsync();
     }
 
+    // Belirli bir üyeye ait randevuları döndürür.
     public async Task<IEnumerable<Appointment>> GetAppointmentsByMemberIdAsync(int memberId)
     {
         return await _appointmentRepository.GetByMemberIdAsync(memberId);
     }
 
+    // Id'ye göre tek bir randevuyu detaylarıyla birlikte döndürür.
     public async Task<Appointment?> GetAppointmentByIdAsync(int id)
     {
         return await _appointmentRepository.GetWithDetailsAsync(id);
     }
 
+    // Yeni randevu oluşturur, saat çakışmalarını kontrol eder.
     public async Task<Appointment> CreateAppointmentAsync(Appointment appointment)
     {
         // SIKI KONTROL: Aynı saatte onaylı randevu var mı? (Antrenör için)
@@ -54,12 +60,14 @@ public class AppointmentService : IAppointmentService
         return await _appointmentRepository.AddAsync(appointment);
     }
 
+    // Var olan bir randevuyu günceller.
     public async Task<Appointment> UpdateAppointmentAsync(Appointment appointment)
     {
         await _appointmentRepository.UpdateAsync(appointment);
         return appointment;
     }
 
+    // Id'ye göre randevu kaydını siler (varsa).
     public async Task DeleteAppointmentAsync(int id)
     {
         var appointment = await _appointmentRepository.GetByIdAsync(id);
@@ -69,6 +77,7 @@ public class AppointmentService : IAppointmentService
         }
     }
 
+    // Randevunun durumunu günceller, onay sırasında çakışma kontrolü yapar.
     public async Task UpdateAppointmentStatusAsync(int id, AppointmentStatus status)
     {
         var appointment = await _appointmentRepository.GetByIdAsync(id);
@@ -101,11 +110,13 @@ public class AppointmentService : IAppointmentService
         }
     }
 
+    // Belirli antrenör için aynı tarih ve saatte onaylı randevu olup olmadığını kontrol eder.
     public async Task<bool> ExistsAtSameTimeAsync(int trainerId, DateTime appointmentDate, TimeSpan appointmentTime)
     {
         return await _appointmentRepository.ExistsAtSameTimeAsync(trainerId, appointmentDate, appointmentTime);
     }
 
+    // Belirli üye için aynı tarih ve saatte onaylı randevu olup olmadığını kontrol eder.
     public async Task<bool> ExistsAtSameTimeForMemberAsync(int memberId, DateTime appointmentDate, TimeSpan appointmentTime)
     {
         return await _appointmentRepository.ExistsAtSameTimeForMemberAsync(memberId, appointmentDate, appointmentTime);

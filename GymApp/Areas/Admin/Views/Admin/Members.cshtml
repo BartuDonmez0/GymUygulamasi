@@ -1,22 +1,24 @@
-@model List<GymApp.Entities.Member>
 @{
     ViewData["Title"] = "Kullanıcılar";
 }
 
 <div class="container-fluid mt-4">
     <div class="row mb-4">
-        <div class="col-12">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
             <h2 class="mb-0"><i class="bi bi-people"></i> Kayıtlı Kullanıcılar</h2>
-            <p class="text-muted">Toplam @Model.Count kullanıcı</p>
+                <p class="text-muted mb-0">Toplam <span id="memberCount">0</span> kullanıcı</p>
+            </div>
+            <a href="@Url.Action("CreateMember", "Admin")" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Yeni Kullanıcı Ekle
+            </a>
         </div>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
-            @if (Model.Any())
-            {
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                <table class="table table-hover" id="membersTable">
                         <thead class="table-light">
                             <tr>
                                 <th>ID</th>
@@ -25,30 +27,16 @@
                                 <th>E-posta</th>
                                 <th>Telefon</th>
                                 <th>Kayıt Tarihi</th>
+                            <th>İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var member in Model)
-                            {
                                 <tr>
-                                    <td>@member.Id</td>
-                                    <td>@member.FirstName</td>
-                                    <td>@member.LastName</td>
-                                    <td>@member.Email</td>
-                                    <td>@member.Phone</td>
-                                    <td>@member.RegistrationDate.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</td>
+                            <td colspan="7" class="text-center">Kullanıcılar yükleniyor...</td>
                                 </tr>
-                            }
                         </tbody>
                     </table>
                 </div>
-            }
-            else
-            {
-                <div class="alert alert-info text-center">
-                    <i class="bi bi-info-circle"></i> Henüz kayıtlı kullanıcı bulunmamaktadır.
-                </div>
-            }
         </div>
     </div>
 
@@ -59,3 +47,107 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadMembersFromApi();
+    });
+
+    async function loadMembersFromApi() {
+        const tableBody = document.querySelector('#membersTable tbody');
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Kullanıcılar yükleniyor...</td></tr>';
+
+        try {
+            const response = await fetch('/api/api/members', {
+                credentials: 'include'
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                tableBody.innerHTML = '';
+                document.getElementById('memberCount').textContent = result.count || 0;
+
+                if (result.data && result.data.length > 0) {
+                    result.data.forEach(member => {
+                        // Property isimleri hem camelCase hem PascalCase destekleniyor
+                        const id = member.id || member.Id || 0;
+                        const firstName = member.firstName || member.FirstName || '';
+                        const lastName = member.lastName || member.LastName || '';
+                        const email = member.email || member.Email || '';
+                        const phone = member.phone || member.Phone || '';
+                        const registrationDate = member.registrationDate || member.RegistrationDate;
+                        
+                        const dateObj = registrationDate ? new Date(registrationDate) : new Date();
+                        const formattedDate = dateObj.toLocaleDateString('tr-TR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+
+                        const row = `
+                            <tr>
+                                <td>${id}</td>
+                                <td>${firstName}</td>
+                                <td>${lastName}</td>
+                                <td>${email}</td>
+                                <td>${phone || '-'}</td>
+                                <td>${formattedDate}</td>
+                                <td>
+                                    <a href="/Admin/Admin/EditMember/${id}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil"></i> Düzenle
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteMember(${id}, this)">
+                                        <i class="bi bi-trash"></i> Sil
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Henüz kayıtlı kullanıcı bulunmamaktadır.</td></tr>';
+                }
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">API\'den veri çekilirken hata oluştu: ${result.message}</td></tr>`;
+            }
+        } catch (error) {
+            console.error('API çağrısı sırasında hata:', error);
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Bağlantı hatası: ${error.message}</td></tr>`;
+        }
+    }
+
+    async function deleteMember(memberId, button) {
+        if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+            return;
+        }
+
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Siliniyor...';
+
+        try {
+            const response = await fetch(`/api/api/members/${memberId}`, {
+                method: 'DELETE',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Kullanıcı başarıyla silindi!');
+                loadMembersFromApi();
+            } else {
+                alert('Hata: ' + (result.message || 'Kullanıcı silinirken bir hata oluştu.'));
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('Silme işlemi sırasında hata:', error);
+            alert('Bağlantı hatası: ' + error.message);
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+</script>

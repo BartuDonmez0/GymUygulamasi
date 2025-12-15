@@ -2,16 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GymApp.Controllers;
 
-/// <summary>
-/// AccessDenied Controller - Yetkisiz erişim durumlarını yönetir
-/// Authorization: Yetkisiz erişim denemelerinde gösterilir
-/// </summary>
+// Yetkisiz erişim durumlarında gösterilen sayfayı yöneten controller.
 public class AccessDeniedController : Controller
 {
-    /// <summary>
-    /// Index - Erişim reddedildi sayfasını gösterir
-    /// Authorization: Yetkisiz erişim durumunda gösterilir
-    /// </summary>
+    // GET: /AccessDenied/Index - Erişim reddedildi sayfasını gösterir.
     public IActionResult Index()
     {
         return View();

@@ -1,4 +1,3 @@
-@model List<GymApp.Entities.Activity>
 @{
     ViewData["Title"] = "Aktiviteler";
     var gymCenterId = ViewData["GymCenterId"] as int?;
@@ -14,27 +13,22 @@
     </div>
 }
 
-@if (Model != null && Model.Any())
-{
     <!-- Filter Section -->
     <div class="card mb-4 shadow-sm border-dark">
         <div class="card-body bg-light">
             <div class="row align-items-end">
                 <div class="col-12 col-md-4 mb-3 mb-md-0">
-                    <label class="form-label fw-bold text-dark"><i class="bi bi-list-check"></i> Aktivite Tipi</label>
+                    <label class="form-label fw-bold text-dark">
+                        <i class="bi bi-list-check"></i> Aktivite Tipi
+                    </label>
                     <select id="typeFilter" class="form-select">
                         <option value="">Tümü</option>
-                        @{
-                            var activityTypes = Model?.Select(a => a.Type).Distinct().OrderBy(t => t.ToString()).ToList() ?? new List<ActivityType>();
-                        }
-                        @foreach (var type in activityTypes)
-                        {
-                            <option value="@type">@type</option>
-                        }
                     </select>
                 </div>
                 <div class="col-12 col-md-4 mb-3 mb-md-0">
-                    <label class="form-label fw-bold text-dark"><i class="bi bi-currency-dollar"></i> Fiyat Aralığı</label>
+                    <label class="form-label fw-bold text-dark">
+                        <i class="bi bi-currency-dollar"></i> Fiyat Aralığı
+                    </label>
                     <select id="priceFilter" class="form-select">
                         <option value="">Tümü</option>
                         <option value="0-200">0 - 200 ₺</option>
@@ -43,8 +37,8 @@
                         <option value="1000+">1000+ ₺</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-4 d-flex align-items-end">
-                    <button type="button" class="btn btn-dark w-100 me-2" onclick="filterActivities()">
+                <div class="col-12 col-md-4 d-flex align-items-end gap-2">
+                    <button type="button" class="btn btn-dark w-100" onclick="filterActivities()">
                         <i class="bi bi-funnel"></i> Filtrele
                     </button>
                     <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
@@ -55,69 +49,18 @@
         </div>
     </div>
 
-    <!-- Activities Grid -->
+    <!-- Activities Grid - API'den dinamik yüklenecek -->
     <div class="row g-4" id="activitiesContainer">
-        @foreach (var activity in Model ?? Enumerable.Empty<GymApp.Entities.Activity>())
-        {
-            <div class="col-12 col-md-6 col-lg-4 activity-card" 
-                 data-type="@activity.Type" 
-                 data-price="@activity.Price">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="activity-image-wrapper">
-                        <img src="@(string.IsNullOrEmpty(activity.ImageUrl) ? "https://via.placeholder.com/400x250?text=Activity" : activity.ImageUrl)" 
-                             class="card-img-top" alt="@activity.Name" style="height: 200px; object-fit: cover; transition: transform 0.3s ease;"
-                             onmouseover="this.style.transform='scale(1.1)';"
-                             onmouseout="this.style.transform='scale(1)';">
-                        <div class="activity-badge">
-                            <span class="badge bg-dark text-white">@activity.Type</span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title fw-bold mb-3 text-dark">@activity.Name</h5>
-                        <p class="card-text text-muted small mb-3">
-                            @(string.IsNullOrEmpty(activity.Description) ? "Açıklama bulunmamaktadır." : (activity.Description.Length > 100 ? activity.Description.Substring(0, 100) + "..." : activity.Description))
-                        </p>
-                        <div class="activity-details mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-dark">
-                                    <i class="bi bi-clock text-dark"></i> Süre
-                                </span>
-                                <strong class="text-dark">@activity.Duration dakika</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-dark">
-                                    <i class="bi bi-currency-dollar text-dark"></i> Fiyat
-                                </span>
-                                <strong class="text-dark fs-5">@activity.Price.ToString("N2") ₺</strong>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-white border-0 pt-0">
-                        <div class="d-grid gap-2">
-                            <a href="@Url.Action("Details", "Activity", new { id = activity.Id })" class="btn btn-outline-dark">
-                                <i class="bi bi-info-circle"></i> Detaylar
-                            </a>
-                            <a href="@Url.Action("Index", "Appointment")" class="btn btn-dark">
-                                <i class="bi bi-calendar-plus"></i> Randevu Al
-                            </a>
-                        </div>
-                    </div>
-                </div>
+        <div class="col-12 text-center">
+            <span class="spinner-border" role="status"></span>
+            <p class="mt-2">Aktiviteler yükleniyor...</p>
             </div>
-        }
     </div>
 
     <!-- No Results Message (hidden by default) -->
     <div id="noResults" class="alert alert-dark text-center d-none border-dark">
         <i class="bi bi-info-circle"></i> Seçilen filtreye uygun aktivite bulunamadı.
     </div>
-}
-else
-{
-    <div class="alert alert-dark text-center border-dark">
-        <i class="bi bi-info-circle"></i> Henüz aktivite tanımlanmamıştır.
-    </div>
-}
 </div>
 
 <style>
@@ -170,12 +113,7 @@ else
         border-color: #000;
     }
 
-    /* Responsive - Tablet */
     @@media (max-width: 768px) {
-        .page-header h2 {
-            font-size: 1.75rem;
-        }
-
         .activity-card {
             margin-bottom: 1.5rem;
         }
@@ -191,54 +129,10 @@ else
         .activity-card .card-text {
             font-size: 0.9rem;
         }
-
-        .card-body .row {
-            flex-direction: column;
-        }
-
-        .card-body .col-md-4 {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-
-        .card-body .form-select {
-            width: 100%;
-        }
     }
 
-    /* Responsive - Telefon */
     @@media (max-width: 576px) {
-        .page-header h2 {
-            font-size: 1.5rem;
-        }
-
-        .page-header p {
-            font-size: 0.9rem;
-        }
-
         .card-body {
-            padding: 1rem !important;
-        }
-
-        .card-body .row {
-            margin: 0;
-        }
-
-        .card-body .col-12,
-        .card-body .col-md-4 {
-            padding: 0.5rem 0;
-        }
-
-        .form-label {
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .activity-card .card {
-            margin-bottom: 1.5rem;
-        }
-
-        .activity-card .card-body {
             padding: 1rem !important;
         }
 
@@ -270,24 +164,119 @@ else
             width: 100%;
         }
     }
-
-    /* Responsive - Çok Küçük Ekranlar */
-    @@media (max-width: 400px) {
-        .page-header h2 {
-            font-size: 1.25rem;
-        }
-
-        .activity-card .card-title {
-            font-size: 0.95rem;
-        }
-
-        .activity-card .card-text {
-            font-size: 0.8rem;
-        }
-    }
 </style>
 
 <script>
+    // API üzerinden aktiviteleri yükleme
+    // Aktivite listesini API'den yükle
+    async function loadActivities() {
+        const container = document.getElementById('activitiesContainer');
+        if (!container) return;
+
+        container.innerHTML = '<div class="col-12 text-center"><span class="spinner-border"></span> Yükleniyor...</div>';
+
+        try {
+            const response = await fetch('/api/api/activities');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message || 'API hatası');
+
+            // API'den gelen aktiviteler (typeId: enum değeri, type: isim, imageUrl: görsel)
+            const activities = result.data || [];
+
+            if (!activities.length) {
+                container.innerHTML = '<div class="col-12"><div class="alert alert-dark text-center border-dark"><i class="bi bi-info-circle"></i> Henüz aktivite tanımlanmamıştır.</div></div>';
+                return;
+            }
+
+            // Aktivite tiplerini select'e ekle (benzersiz isim listesi)
+            const typeFilter = document.getElementById('typeFilter');
+            const uniqueTypes = [...new Set(activities
+                .filter(a => {
+                    // Property isimleri hem camelCase hem PascalCase destekleniyor
+                    const type = a.type || a.Type || '';
+                    return type.length > 0;
+                })
+                .map(a => a.type || a.Type || ''))]  // type = string isim
+                .filter(t => t.length > 0)
+                .sort();
+
+            uniqueTypes.forEach(typeName => {
+                const option = document.createElement('option');
+                option.value = typeName;          // filtreleme için isim kullan
+                option.textContent = typeName;    // dropdownda isim göster
+                typeFilter.appendChild(option);
+            });
+
+            // Aktiviteleri render et
+            const activityCards = activities.map(activity => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const id = activity.id || activity.Id || 0;
+                const name = activity.name || activity.Name || 'İsimsiz Aktivite';
+                const type = activity.type || activity.Type || '';
+                const description = (activity.description || activity.Description || '');
+                const descriptionDisplay = description && description.length > 100
+                    ? description.substring(0, 100) + '...'
+                    : (description || 'Açıklama bulunmamaktadır.');
+                const imageUrl = activity.imageUrl || activity.ImageUrl || 'https://via.placeholder.com/400x250?text=Activity';
+                const duration = activity.duration || activity.Duration || 0;
+                const price = parseFloat(activity.price || activity.Price || 0);
+
+                return `<div class="col-12 col-md-6 col-lg-4 activity-card" 
+                    data-type="${type}" 
+                    data-price="${price}">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="activity-image-wrapper">
+                            <img src="${imageUrl}" 
+                                class="card-img-top" alt="${name}" 
+                                style="height: 200px; object-fit: cover; transition: transform 0.3s ease;"
+                                onmouseover="this.style.transform='scale(1.1)';"
+                                onmouseout="this.style.transform='scale(1)';"
+                                onerror="this.src='https://via.placeholder.com/400x250?text=Activity'">
+                            <div class="activity-badge">
+                                <span class="badge bg-dark text-white">${type}</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold mb-3 text-dark">${name}</h5>
+                            <p class="card-text text-muted small mb-3">${descriptionDisplay}</p>
+                            <div class="activity-details mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-dark">
+                                        <i class="bi bi-clock text-dark"></i> Süre
+                                    </span>
+                                    <strong class="text-dark">${duration} dakika</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-dark">
+                                        <i class="bi bi-currency-dollar text-dark"></i> Fiyat
+                                    </span>
+                                    <strong class="text-dark fs-5">${price.toFixed(2)} ₺</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 pt-0">
+                            <div class="d-grid gap-2">
+                                <a href="/Activity/Details/${id}" class="btn btn-outline-dark">
+                                    <i class="bi bi-info-circle"></i> Detaylar
+                                </a>
+                                <a href="/Appointment/Index" class="btn btn-dark">
+                                    <i class="bi bi-calendar-plus"></i> Randevu Al
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = activityCards;
+        } catch (error) {
+            console.error('API hata:', error);
+            container.innerHTML = '<div class="col-12"><div class="alert alert-danger text-center"><i class="bi bi-exclamation-triangle"></i> API\'den veriler alınırken hata oluştu: ' + error.message + '</div></div>';
+        }
+    }
+
     function filterActivities() {
         const typeFilter = document.getElementById('typeFilter').value;
         const priceFilter = document.getElementById('priceFilter').value;
@@ -300,12 +289,10 @@ else
             
             let showActivity = true;
 
-            // Type filter
             if (typeFilter && activityType !== typeFilter) {
                 showActivity = false;
             }
 
-            // Price filter
             if (priceFilter && showActivity) {
                 switch (priceFilter) {
                     case '0-200':
@@ -331,7 +318,6 @@ else
             }
         });
 
-        // Show/hide no results message
         const noResults = document.getElementById('noResults');
         if (visibleCount === 0) {
             noResults.classList.remove('d-none');
@@ -346,10 +332,10 @@ else
         filterActivities();
     }
 
-    // Reset filters on page load
+    // Sayfa yüklendiğinde API'den verileri çek
     document.addEventListener('DOMContentLoaded', function() {
+        loadActivities();
         document.getElementById('typeFilter').addEventListener('change', filterActivities);
         document.getElementById('priceFilter').addEventListener('change', filterActivities);
     });
 </script>
-

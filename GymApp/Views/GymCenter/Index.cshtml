@@ -1,4 +1,3 @@
-@model List<GymApp.Entities.GymCenter>
 @{
     ViewData["Title"] = "Spor Salonları";
 }
@@ -9,44 +8,30 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-12 col-md-4">
-                <label for="dayOfWeek" class="form-label text-dark"><i class="bi bi-calendar-week"></i> Çalışma Günü</label>
+                    <label for="dayOfWeek" class="form-label text-dark">
+                        <i class="bi bi-calendar-week"></i> Çalışma Günü
+                    </label>
                 <select class="form-select" id="dayOfWeek">
                     <option value="">Tüm Günler</option>
-                    @{
-                        var selectedDay = ViewBag.DayOfWeek != null ? (int)ViewBag.DayOfWeek : (int?)null;
-                    }
-                    @if (selectedDay == 0) { <option value="0" selected>Pazar</option> } else { <option value="0">Pazar</option> }
-                    @if (selectedDay == 1) { <option value="1" selected>Pazartesi</option> } else { <option value="1">Pazartesi</option> }
-                    @if (selectedDay == 2) { <option value="2" selected>Salı</option> } else { <option value="2">Salı</option> }
-                    @if (selectedDay == 3) { <option value="3" selected>Çarşamba</option> } else { <option value="3">Çarşamba</option> }
-                    @if (selectedDay == 4) { <option value="4" selected>Perşembe</option> } else { <option value="4">Perşembe</option> }
-                    @if (selectedDay == 5) { <option value="5" selected>Cuma</option> } else { <option value="5">Cuma</option> }
-                    @if (selectedDay == 6) { <option value="6" selected>Cumartesi</option> } else { <option value="6">Cumartesi</option> }
+                        <option value="0">Pazar</option>
+                        <option value="1">Pazartesi</option>
+                        <option value="2">Salı</option>
+                        <option value="3">Çarşamba</option>
+                        <option value="4">Perşembe</option>
+                        <option value="5">Cuma</option>
+                        <option value="6">Cumartesi</option>
                 </select>
             </div>
             <div class="col-12 col-md-4">
-                <label for="activityId" class="form-label text-dark"><i class="bi bi-list-check"></i> Aktivite</label>
+                    <label for="activityId" class="form-label text-dark">
+                        <i class="bi bi-list-check"></i> Aktivite
+                    </label>
                 <select class="form-select" id="activityId">
                     <option value="">Tüm Aktiviteler</option>
-                    @if (ViewBag.Activities != null)
-                    {
-                        var selectedActivityId = ViewBag.ActivityId != null ? (int)ViewBag.ActivityId : (int?)null;
-                        @foreach (var activity in (List<GymApp.Entities.Activity>)ViewBag.Activities)
-                        {
-                            @if (selectedActivityId == activity.Id)
-                            {
-                                <option value="@activity.Id" selected>@activity.Name</option>
-                            }
-                            else
-                            {
-                                <option value="@activity.Id">@activity.Name</option>
-                            }
-                        }
-                    }
                 </select>
             </div>
-            <div class="col-12 col-md-4 d-flex align-items-end">
-                <button type="button" class="btn btn-dark w-100 me-2" onclick="applyFilters()">
+                <div class="col-12 col-md-4 d-flex align-items-end gap-2">
+                    <button type="button" class="btn btn-dark w-100" onclick="applyFilters()">
                     <i class="bi bi-funnel"></i> Filtrele
                 </button>
                 <button type="button" class="btn btn-outline-dark" onclick="clearFilters()">
@@ -57,125 +42,18 @@
     </div>
 </div>
 
-@if (Model != null && Model.Any())
-{
+    <!-- Spor Salonları Container - API'den dinamik yüklenecek -->
+    <div id="gymCentersContainer">
     <div class="row g-4">
-        @foreach (var gymCenter in Model)
-        {
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="gym-card card h-100 shadow-sm">
-                    <div class="gym-card-image">
-                        <img src="@(string.IsNullOrEmpty(gymCenter.ImageUrl) ? "https://via.placeholder.com/400x250?text=Gym" : gymCenter.ImageUrl)" 
-                             class="card-img-top" alt="@gymCenter.Name" style="height: 250px; object-fit: cover;">
-                        <div class="gym-card-overlay">
-                            <a href="@Url.Action("Details", "GymCenter", new { id = gymCenter.Id })" class="btn btn-light btn-sm">
-                                <i class="bi bi-eye"></i> Detayları Gör
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title fw-bold">@gymCenter.Name</h5>
-                        <p class="card-text text-muted small mb-2">
-                            <i class="bi bi-geo-alt"></i> @gymCenter.Address
-                        </p>
-                        <p class="card-text">
-                            @(string.IsNullOrEmpty(gymCenter.Description) ? "Açıklama bulunmamaktadır." : (gymCenter.Description.Length > 100 ? gymCenter.Description.Substring(0, 100) + "..." : gymCenter.Description))
-                        </p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <small class="text-muted">
-                                <i class="bi bi-clock"></i> 
-                                @{
-                                    var workingHoursDisplay = "Belirtilmemiş";
-                                    if (!string.IsNullOrEmpty(gymCenter.WorkingHoursJson) && gymCenter.WorkingHoursJson != "[]")
-                                    {
-                                        try
-                                        {
-                                            // Yeni format: [{"Day": 1, "Hours": ["10-11", "11-12"]}]
-                                            var workingHoursData = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(gymCenter.WorkingHoursJson);
-                                            if (workingHoursData != null && workingHoursData.Any())
-                                            {
-                                                var daysOfWeek = new[] { "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi" };
-                                                var firstItem = workingHoursData.First();
-                                                
-                                                // Yeni format kontrolü
-                                                if (firstItem.TryGetProperty("Day", out var dayElement) && 
-                                                    firstItem.TryGetProperty("Hours", out var hoursElement))
-                                                {
-                                                    var day = dayElement.GetInt32();
-                                                    var hours = hoursElement.EnumerateArray()
-                                                        .Select(h => h.GetString())
-                                                        .Where(h => !string.IsNullOrEmpty(h))
-                                                        .Take(2) // İlk 2 saati göster
-                                                        .ToList();
-                                                    
-                                                    if (hours.Any())
-                                                    {
-                                                        var formattedHours = hours.Select(h => 
-                                                        {
-                                                            var parts = h?.Split('-');
-                                                            if (parts != null && parts.Length == 2)
-                                                            {
-                                                                return $"{parts[0]}:00-{parts[1]}:00";
-                                                            }
-                                                            return h;
-                                                        });
-                                                        
-                                                        workingHoursDisplay = $"{daysOfWeek[day]}: {string.Join(", ", formattedHours)}";
-                                                        if (workingHoursData.Count > 1)
-                                                        {
-                                                            workingHoursDisplay += $" (+{workingHoursData.Count - 1} gün)";
-                                                        }
-                                                    }
-                                                }
-                                                // Eski format desteği
-                                                else if (firstItem.TryGetProperty("Day", out var dayElementOld) && 
-                                                         firstItem.TryGetProperty("TimeRange", out var timeRangeElement))
-                                                {
-                                                    var day = dayElementOld.GetInt32();
-                                                    var timeRange = timeRangeElement.GetString();
-                                                    workingHoursDisplay = $"{daysOfWeek[day]}: {timeRange}";
-                                                    if (workingHoursData.Count > 1)
-                                                    {
-                                                        workingHoursDisplay += $" (+{workingHoursData.Count - 1} gün)";
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            workingHoursDisplay = gymCenter.WorkingHours ?? "Belirtilmemiş";
-                                        }
-                                    }
-                                    else if (!string.IsNullOrEmpty(gymCenter.WorkingHours))
-                                    {
-                                        workingHoursDisplay = gymCenter.WorkingHours;
-                                    }
-                                }
-                                @workingHoursDisplay
-                            </small>
-                            <a href="@Url.Action("Details", "GymCenter", new { id = gymCenter.Id })" class="btn btn-primary btn-sm">
-                                Detaylar <i class="bi bi-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-12 text-center">
+                <span class="spinner-border" role="status"></span>
+                <p class="mt-2">Spor salonları yükleniyor...</p>
             </div>
-        }
     </div>
-}
-else
-{
-    <div class="alert alert-info text-center">
-        <i class="bi bi-info-circle"></i> Henüz kayıtlı spor salonu bulunmamaktadır.
     </div>
-}
 </div>
 
 <style>
-    .page-header {
-        text-align: center;
-    }
-
     .gym-card {
         border: none;
         border-radius: 15px;
@@ -236,108 +114,21 @@ else
         max-width: 200px;
     }
 
-    /* Responsive - Tablet (992px ve altı) */
-    @@media (max-width: 992px) {
-        .row.g-4 {
-            --bs-gutter-x: 1.5rem;
-            --bs-gutter-y: 1.5rem;
-        }
-
-        .gym-card .card-body {
-            padding: 1.5rem;
-        }
-    }
-
-    /* Responsive - Tablet (768px ve altı) */
     @@media (max-width: 768px) {
-        .container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-
-        .page-header {
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .page-header h2 {
-            font-size: 1.75rem;
-        }
-
-        .page-header p {
-            font-size: 0.95rem;
-        }
-
-        .row.g-4 {
-            --bs-gutter-x: 1rem;
-            --bs-gutter-y: 1.25rem;
-        }
-
-        .gym-card {
-            margin-bottom: 0;
-        }
-
-        .gym-card-image img {
-            height: 220px !important;
-        }
-
         .gym-card .card-body {
             padding: 1.25rem;
         }
 
         .gym-card .card-title {
             font-size: 1.15rem;
-            margin-bottom: 0.75rem;
         }
 
         .gym-card .card-text {
             font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        .gym-card .d-flex {
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        .gym-card .btn {
-            width: 100%;
-            max-width: 200px;
         }
     }
 
-    /* Responsive - Telefon (576px ve altı) */
     @@media (max-width: 576px) {
-        .container {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        .page-header {
-            padding: 1.25rem 1rem;
-            margin-bottom: 1.25rem;
-            border-radius: 8px;
-        }
-
-        .page-header h2 {
-            font-size: 1.5rem;
-        }
-
-        .page-header p {
-            font-size: 0.9rem;
-        }
-
-        .row.g-4 {
-            --bs-gutter-x: 0.75rem;
-            --bs-gutter-y: 1rem;
-        }
-
-        .gym-card {
-            margin-bottom: 0;
-            border-radius: 12px;
-        }
-
         .gym-card-image img {
             height: 200px !important;
         }
@@ -348,25 +139,10 @@ else
 
         .gym-card .card-title {
             font-size: 1.05rem;
-            margin-bottom: 0.625rem;
-            line-height: 1.3;
         }
 
         .gym-card .card-text {
             font-size: 0.85rem;
-            line-height: 1.5;
-            margin-bottom: 0.75rem;
-        }
-
-        .gym-card .card-text.small {
-            font-size: 0.8rem;
-        }
-
-        .gym-card .d-flex {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-            align-items: center;
         }
 
         .gym-card .btn {
@@ -375,68 +151,216 @@ else
             padding: 0.6rem 1rem;
             font-size: 0.875rem;
         }
-
-        .gym-card-overlay .btn {
-            font-size: 0.8rem;
-            padding: 0.4rem 0.75rem;
-        }
-    }
-
-    /* Responsive - Çok Küçük Ekranlar (400px ve altı) */
-    @@media (max-width: 400px) {
-        .page-header {
-            padding: 1rem 0.75rem;
-        }
-
-        .page-header h2 {
-            font-size: 1.25rem;
-        }
-
-        .page-header p {
-            font-size: 0.85rem;
-        }
-
-        .row.g-4 {
-            --bs-gutter-x: 0.5rem;
-            --bs-gutter-y: 0.875rem;
-        }
-
-        .gym-card-image img {
-            height: 180px !important;
-        }
-
-        .gym-card .card-body {
-            padding: 0.875rem;
-        }
-
-        .gym-card .card-title {
-            font-size: 1rem;
-        }
-
-        .gym-card .card-text {
-            font-size: 0.8rem;
-        }
-
-        .gym-card .card-text.small {
-            font-size: 0.75rem;
-        }
     }
 </style>
 
 <script>
+    // Aktivite listesini API'den yükle
+    async function loadActivities() {
+        try {
+            const response = await fetch('/api/api/activities');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const result = await response.json();
+            if (result.success && result.data) {
+                // Dropdown elementi seç
+                const select = document.getElementById('activityId');
+                
+                // Duplicate kontrolü için Set kullan - aynı ID'li aktiviteleri tekrar eklememek için
+                const addedIds = new Set();
+                
+                // Her aktiviteyi kontrol et ve dropdown'a ekle
+                result.data.forEach(activity => {
+                    // Property isimleri hem camelCase hem PascalCase destekleniyor (API response formatına göre)
+                    const activityId = activity.id || activity.Id || 0;
+                    const activityName = activity.name || activity.Name || '';
+                    
+                    // Aynı ID'li aktivite zaten eklenmişse atla (duplicate önleme)
+                    // Geçerli ID ve isim kontrolü yap
+                    if (activityId > 0 && !addedIds.has(activityId) && activityName) {
+                        // ID'yi Set'e ekle (bir sonraki kontrol için)
+                        addedIds.add(activityId);
+                        
+                        // Yeni option elementi oluştur
+                        const option = document.createElement('option');
+                        option.value = activityId; // Option değeri aktivite ID'si
+                        option.textContent = activityName; // Görünen metin aktivite adı
+                        
+                        // Dropdown'a ekle
+                        select.appendChild(option);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Aktiviteler yüklenirken hata:', error);
+        }
+    }
+
+    // Filtreleri uygula
     function applyFilters() {
         const dayOfWeek = document.getElementById('dayOfWeek').value;
         const activityId = document.getElementById('activityId').value;
-        
-        const params = new URLSearchParams();
-        if (dayOfWeek) params.append('dayOfWeek', dayOfWeek);
-        if (activityId) params.append('activityId', activityId);
-        
-        const url = '@Url.Action("Index", "GymCenter")' + (params.toString() ? '?' + params.toString() : '');
-        window.location.href = url;
+        loadGymCentersFromApi(activityId, dayOfWeek);
+        }
+
+    // Filtreleri temizle
+    function clearFilters() {
+        document.getElementById('dayOfWeek').value = '';
+        document.getElementById('activityId').value = '';
+        loadGymCentersFromApi(null, null);
     }
 
-    function clearFilters() {
-        window.location.href = '@Url.Action("Index", "GymCenter")';
+    // API üzerinden spor salonlarını yükleme (LINQ filtreleme ile)
+    async function loadGymCentersFromApi(activityId, dayOfWeek) {
+        const container = document.getElementById('gymCentersContainer');
+        if (!container) return;
+
+        container.innerHTML = '<div class="row g-4"><div class="col-12 text-center"><span class="spinner-border"></span> Yükleniyor...</div></div>';
+
+        try {
+            let url = '/api/api/gym-centers';
+        const params = new URLSearchParams();
+            
+            // Çalışma günü filtresi
+            if (dayOfWeek !== null && dayOfWeek !== undefined && dayOfWeek !== '') {
+                params.append('dayOfWeek', dayOfWeek);
+            }
+            
+            // Aktivite filtresi için özel endpoint kullan
+            if (activityId) {
+                url = `/api/api/gym-centers-by-activity?activityId=${activityId}`;
+                if (dayOfWeek !== null && dayOfWeek !== undefined && dayOfWeek !== '') {
+                    params.append('dayOfWeek', dayOfWeek);
+                }
+            }
+            
+            // Parametreleri URL'ye ekle
+            if (params.toString()) {
+                url += (url.includes('?') ? '&' : '?') + params.toString();
+            }
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+        
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message || 'API hatası');
+
+            let gymCenters = result.data || [];
+
+            if (!gymCenters.length) {
+                container.innerHTML = '<div class="row g-4"><div class="col-12"><div class="alert alert-info text-center"><i class="bi bi-info-circle"></i> Filtrelere uygun spor salonu bulunamadı.</div></div></div>';
+                return;
+            }
+
+            const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+            
+            const gymCenterCards = gymCenters.map(gc => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const id = gc.id || gc.Id || 0;
+                const name = gc.name || gc.Name || 'İsimsiz Spor Salonu';
+                const address = gc.address || gc.Address || 'Adres belirtilmemiş';
+                const imageUrl = gc.imageUrl || gc.ImageUrl || 'https://via.placeholder.com/400x250?text=Gym';
+                const workingHoursJson = gc.workingHoursJson || gc.WorkingHoursJson || '[]';
+                
+                // Çalışma saatleri parse et
+                let workingHoursDisplay = "Belirtilmemiş";
+                try {
+                    if (workingHoursJson && workingHoursJson !== '[]') {
+                        const workingHours = JSON.parse(workingHoursJson);
+                        if (Array.isArray(workingHours) && workingHours.length > 0) {
+                            const firstItem = workingHours[0];
+                            const day = firstItem.Day !== undefined ? firstItem.Day : (firstItem.day !== undefined ? firstItem.day : undefined);
+                            
+                            if (day !== undefined) {
+                                const dayName = dayNames[day] || `Gün ${day}`;
+                                const hours = firstItem.Hours || firstItem.hours;
+                                const timeRange = firstItem.TimeRange || firstItem.timeRange;
+                                
+                                if (hours && Array.isArray(hours)) {
+                                    const hoursFormatted = hours.slice(0, 2).map(h => {
+                                        const parts = h.split('-');
+                                        return parts.length === 2 ? `${parts[0]}:00-${parts[1]}:00` : h;
+                                    });
+                                    workingHoursDisplay = `${dayName}: ${hoursFormatted.join(", ")}`;
+                                    if (workingHours.length > 1) {
+                                        workingHoursDisplay += ` (+${workingHours.length - 1} gün)`;
+                                    }
+                                } else if (timeRange) {
+                                    workingHoursDisplay = `${dayName}: ${timeRange}`;
+                                    if (workingHours.length > 1) {
+                                        workingHoursDisplay += ` (+${workingHours.length - 1} gün)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('WorkingHoursJson parse hatası:', e);
+                    workingHoursDisplay = "Belirtilmemiş";
+                }
+
+                const description = (gc.description || gc.Description || '');
+                const descriptionDisplay = description && description.length > 100
+                    ? description.substring(0, 100) + '...'
+                    : (description || 'Açıklama bulunmamaktadır.');
+
+                return `<div class="col-12 col-md-6 col-lg-4">
+                    <div class="gym-card card h-100 shadow-sm">
+                        <div class="gym-card-image">
+                            <img src="${imageUrl}" 
+                                class="card-img-top" alt="${name}" 
+                                style="height: 250px; object-fit: cover;"
+                                onerror="this.src='https://via.placeholder.com/400x250?text=Gym'">
+                            <div class="gym-card-overlay">
+                                <a href="/GymCenter/Details/${id}" class="btn btn-light btn-sm">
+                                    <i class="bi bi-eye"></i> Detayları Gör
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">${name}</h5>
+                            <p class="card-text text-muted small mb-2">
+                                <i class="bi bi-geo-alt"></i> ${address}
+                            </p>
+                            <p class="card-text">${descriptionDisplay}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> ${workingHoursDisplay}
+                                </small>
+                                <a href="/GymCenter/Details/${id}" class="btn btn-primary btn-sm">
+                                    Detaylar <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = `<div class="row g-4">${gymCenterCards}</div>`;
+        } catch (error) {
+            console.error('API hata:', error);
+            container.innerHTML = '<div class="row g-4"><div class="col-12"><div class="alert alert-danger text-center"><i class="bi bi-exclamation-triangle"></i> API\'den veriler alınırken hata oluştu: ' + error.message + '</div></div></div>';
+        }
     }
+
+    // Sayfa yüklendiğinde API'den verileri çek
+    document.addEventListener('DOMContentLoaded', function() {
+        loadActivities();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const activityId = urlParams.get('activityId');
+        const dayOfWeek = urlParams.get('dayOfWeek');
+        
+        if (dayOfWeek) {
+            document.getElementById('dayOfWeek').value = dayOfWeek;
+        }
+        
+        loadGymCentersFromApi(activityId, dayOfWeek);
+        
+        setTimeout(() => {
+            if (activityId) {
+                document.getElementById('activityId').value = activityId;
+    }
+        }, 500);
+    });
 </script>

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 
 namespace GymApp.Repositories;
 
+// Tüm repository sınıfları için ortak CRUD ve sorgulama imzalarını tanımlar.
 public interface IRepository<T> where T : class
 {
     Task<T?> GetByIdAsync(int id);

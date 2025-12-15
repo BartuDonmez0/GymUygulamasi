@@ -11,8 +11,9 @@
                     <h3 class="mb-0"><i class="bi bi-person-plus"></i> Yeni Antrenör Ekle</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="CreateTrainer" method="post">
-                        <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
+                    <form id="createTrainerForm" onsubmit="return createTrainerViaApi(event)">
+                        <div id="validationSummary" class="alert alert-danger mb-3" style="display: none;"></div>
+                        <div id="successMessage" class="alert alert-success mb-3" style="display: none;"></div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -530,5 +531,232 @@
             return true;
         });
     </script>
+
+<script>
+    // Aktivite listesini API'den yükle
+    async function loadActivities() {
+        try {
+            const response = await fetch('/api/api/activities');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const result = await response.json();
+            if (result.success && result.data) {
+                const container = document.querySelector('.border.rounded.p-3');
+                if (container) {
+                    container.innerHTML = '<div class="row">';
+                    result.data.forEach(activity => {
+                        const div = document.createElement('div');
+                        div.className = 'col-md-6 mb-2';
+                        div.innerHTML = `
+                            <div class="form-check">
+                                <input class="form-check-input activity-checkbox" 
+                                       type="checkbox" 
+                                       name="SelectedActivityIds" 
+                                       value="${activity.id}" 
+                                       id="activity_${activity.id}" />
+                                <label class="form-check-label" for="activity_${activity.id}">
+                                    ${activity.name}
+                                    <small class="text-muted">(${activity.gymCenterName || 'N/A'})</small>
+                                </label>
+                            </div>
+                        `;
+                        container.querySelector('.row').appendChild(div);
+                    });
+                    container.innerHTML += '</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Aktiviteler yüklenirken hata:', error);
+        }
+    }
+
+    // Spor salonlarını API'den yükle
+    async function loadGymCenters() {
+        try {
+            const response = await fetch('/api/api/gym-centers');
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            const result = await response.json();
+            if (result.success && result.data) {
+                const select = document.getElementById('gymCenterSelect');
+                if (select) {
+                    select.innerHTML = '<option value="">Spor Salonu Seçiniz</option>';
+                    result.data.forEach(gc => {
+                        const option = document.createElement('option');
+                        option.value = gc.id;
+                        option.textContent = gc.name;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Spor salonları yüklenirken hata:', error);
+        }
+    }
+
+    // API üzerinden antrenör oluşturma
+    async function createTrainerViaApi(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        const validationSummary = document.getElementById('validationSummary');
+        const successMessage = document.getElementById('successMessage');
+        
+        // Form verilerini topla
+        const selectedActivityIds = Array.from(document.querySelectorAll('.activity-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+        
+        // Specialization'ı seçilen aktivitelerden oluştur
+        let specialization = '';
+        if (selectedActivityIds.length > 0) {
+            const activityNames = [];
+            document.querySelectorAll('.activity-checkbox:checked').forEach(checkbox => {
+                const label = checkbox.closest('.form-check').querySelector('label');
+                if (label) {
+                    const activityName = label.textContent.split('(')[0].trim();
+                    if (activityName && !activityNames.includes(activityName)) {
+                        activityNames.push(activityName);
+                    }
+                }
+            });
+            specialization = activityNames.join(', ') || 'Belirtilmemiş';
+        } else {
+            specialization = 'Belirtilmemiş';
+        }
+        
+        const workingHoursData = [];
+        document.querySelectorAll('.day-working-hours').forEach(dayDiv => {
+            const day = parseInt(dayDiv.dataset.day);
+            const selectedHours = Array.from(dayDiv.querySelectorAll('.hour-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedHours.length > 0) {
+                workingHoursData.push({
+                    Day: day,
+                    Hours: selectedHours
+                });
+            }
+        });
+        
+        // API camelCase bekliyor
+        const trainerData = {
+            firstName: document.querySelector('input[name="FirstName"]').value.trim(),
+            lastName: document.querySelector('input[name="LastName"]').value.trim(),
+            email: document.querySelector('input[name="Email"]').value.trim(),
+            phone: document.querySelector('input[name="Phone"]').value.trim(),
+            profilePhotoUrl: document.querySelector('input[name="ProfilePhotoUrl"]')?.value.trim() || '',
+            gymCenterId: parseInt(document.getElementById('gymCenterSelect').value) || 0,
+            specialization: specialization,
+            password: document.querySelector('input[name="Password"]')?.value || 'default123',
+            workingHoursJson: JSON.stringify(workingHoursData),
+            trainerActivities: selectedActivityIds.map(id => ({ activityId: id }))
+        };
+        
+        // Validasyon
+        if (!trainerData.firstName || trainerData.firstName.trim() === '') {
+            showValidationError('Ad alanı zorunludur.');
+            return false;
+        }
+        
+        if (!trainerData.lastName || trainerData.lastName.trim() === '') {
+            showValidationError('Soyad alanı zorunludur.');
+            return false;
+        }
+        
+        var atSymbol = String.fromCharCode(64); // 64 = at işareti karakterinin ASCII kodu
+        var emailAtIndex = trainerData.email.indexOf(atSymbol);
+        if (emailAtIndex === -1 || emailAtIndex === 0 || emailAtIndex === trainerData.email.length - 1) {
+            showValidationError('Geçerli bir e-posta adresi giriniz.');
+            return false;
+        }
+        
+        if (!trainerData.gymCenterId || trainerData.gymCenterId <= 0) {
+            showValidationError('Lütfen bir spor salonu seçiniz.');
+            return false;
+        }
+        
+        // Loading durumu
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Kaydediliyor...';
+        validationSummary.style.display = 'none';
+        successMessage.style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/api/trainers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify(trainerData)
+            });
+            
+            if (!response.ok) {
+                let errorMessage = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    console.error('API Error Response:', errorData);
+                    
+                    if (errorData.errors) {
+                        // ModelState hatalarını göster
+                        const errorMessages = [];
+                        Object.keys(errorData.errors).forEach(key => {
+                            const fieldErrors = errorData.errors[key];
+                            if (Array.isArray(fieldErrors)) {
+                                fieldErrors.forEach(err => {
+                                    errorMessages.push(`${key}: ${err}`);
+                                });
+                            } else {
+                                errorMessages.push(`${key}: ${fieldErrors}`);
+                            }
+                        });
+                        errorMessage = errorMessages.join('; ') || errorData.message || errorMessage;
+                    } else if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing response:', parseError);
+                    const text = await response.text().catch(() => '');
+                    errorMessage = `HTTP ${response.status}: ${text || 'Bilinmeyen hata'}`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            const result = await response.json();
+            if (result.success) {
+                successMessage.textContent = 'Antrenör başarıyla oluşturuldu! Yönlendiriliyorsunuz...';
+                successMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '/Admin/Admin/Trainers';
+                }, 2000);
+            } else {
+                throw new Error(result.message || 'Antrenör oluşturulamadı');
+            }
+        } catch (error) {
+            console.error('Create trainer error:', error);
+            showValidationError('Antrenör oluşturulurken hata oluştu: ' + error.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+        
+        return false;
+    }
+    
+    function showValidationError(message) {
+        const validationSummary = document.getElementById('validationSummary');
+        validationSummary.innerHTML = '<ul class="mb-0"><li>' + message + '</li></ul>';
+        validationSummary.style.display = 'block';
+    }
+
+    // Sayfa yüklendiğinde verileri yükle
+    document.addEventListener('DOMContentLoaded', function() {
+        loadActivities();
+        loadGymCenters();
+    });
+</script>
 }
 

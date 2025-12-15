@@ -6,32 +6,20 @@ using Microsoft.AspNetCore.Http;
 
 namespace GymApp.Services;
 
-/// <summary>
-/// Gemini AI Service - Google Gemini API entegrasyonu için servis
-/// AI Entegrasyonu: Gemini 2.0 Flash modeli ile yapay zeka destekli öneriler sağlar
-/// Fotoğraf desteği: Base64 encoding ile fotoğraf yükleme ve analiz desteği
-/// </summary>
+// Google Gemini API ile yapay zeka entegrasyonunu yöneten servis.
 public class GeminiAIService : IAIService
 {
     private readonly HttpClient _httpClient;
     private readonly GeminiOptions _options;
 
-    /// <summary>
-    /// Constructor - Dependency injection ile HttpClient ve GeminiOptions'ı alır
-    /// </summary>
+    // Constructor - HttpClient ve GeminiOptions bağımlılıklarını alır.
     public GeminiAIService(HttpClient httpClient, IOptions<GeminiOptions> options)
     {
         _httpClient = httpClient;
         _options = options.Value;
     }
 
-    /// <summary>
-    /// GetChatResponseAsync - AI chatbot'a mesaj gönderir ve yanıt alır
-    /// AI Entegrasyonu: Gemini API ile genel sohbet desteği
-    /// </summary>
-    /// <param name="userMessage">Kullanıcı mesajı</param>
-    /// <param name="userContext">Kullanıcı bağlam bilgileri (opsiyonel)</param>
-    /// <returns>AI yanıtı</returns>
+    // Genel sohbet için Gemini modelinden yanıt döndürür.
     public async Task<string> GetChatResponseAsync(string userMessage, string? userContext = null)
     {
         if (string.IsNullOrEmpty(_options.ApiKey))
@@ -52,15 +40,7 @@ Türkçe cevap ver. Kısa, öz ve anlaşılır ol. Profesyonel ama samimi bir di
         return await CallGeminiAPIAsync(fullPrompt, null);
     }
 
-    /// <summary>
-    /// GetExerciseRecommendationAsync - Özelleştirilmiş egzersiz planı önerisi alır
-    /// AI Entegrasyonu: Vücut tipi, boy, kilo ve fotoğraf açıklamasına göre egzersiz planı oluşturur
-    /// </summary>
-    /// <param name="bodyType">Vücut tipi (Ektomorf, Mezomorf, Endomorf)</param>
-    /// <param name="height">Boy (cm) (opsiyonel)</param>
-    /// <param name="weight">Kilo (kg) (opsiyonel)</param>
-    /// <param name="photoDescription">Fotoğraf açıklaması (opsiyonel)</param>
-    /// <returns>Egzersiz planı önerisi</returns>
+    // Kullanıcının vücut bilgilerine göre egzersiz planı önerisi üretir.
     public async Task<string> GetExerciseRecommendationAsync(string bodyType, double? height = null, double? weight = null, string? photoDescription = null)
     {
         var context = $"Vücut tipi: {bodyType}";
@@ -86,15 +66,7 @@ Cevabı Türkçe ver.
         return await CallGeminiAPIAsync(promptText, null);
     }
 
-    /// <summary>
-    /// GetDietRecommendationAsync - Özelleştirilmiş diyet planı önerisi alır
-    /// AI Entegrasyonu: Vücut tipi, boy, kilo ve fotoğraf açıklamasına göre diyet planı oluşturur
-    /// </summary>
-    /// <param name="bodyType">Vücut tipi (Ektomorf, Mezomorf, Endomorf)</param>
-    /// <param name="height">Boy (cm) (opsiyonel)</param>
-    /// <param name="weight">Kilo (kg) (opsiyonel)</param>
-    /// <param name="photoDescription">Fotoğraf açıklaması (opsiyonel)</param>
-    /// <returns>Diyet planı önerisi</returns>
+    // Kullanıcının vücut bilgilerine göre diyet planı önerisi üretir.
     public async Task<string> GetDietRecommendationAsync(string bodyType, double? height = null, double? weight = null, string? photoDescription = null)
     {
         var context = $"Vücut tipi: {bodyType}";
@@ -119,13 +91,7 @@ Cevabı Türkçe ver.
         return await CallGeminiAPIAsync(promptText, null);
     }
 
-    /// <summary>
-    /// GetVisualizationAsync - Egzersiz planına göre gelecekteki görünüm tahmini alır
-    /// AI Entegrasyonu: Egzersiz planını analiz ederek vücut değişikliklerini tahmin eder
-    /// </summary>
-    /// <param name="exercisePlan">Egzersiz planı metni</param>
-    /// <param name="bodyType">Vücut tipi</param>
-    /// <returns>Görünüm tahmini</returns>
+    // Egzersiz planına göre vücuttaki olası değişimleri metinsel olarak açıklar.
     public async Task<string> GetVisualizationAsync(string exercisePlan, string bodyType)
     {
         var message = $"Aşağıdaki egzersiz planını takip edersem nasıl görüneceğimi açıkla:\n\n{exercisePlan}\n\nVücut tipim: {bodyType}\n\nBu planı takip ettikten sonra vücudumda ne gibi değişiklikler olacak? Hangi bölgelerde gelişme göreceğim?";
@@ -133,17 +99,7 @@ Cevabı Türkçe ver.
         return await GetChatResponseAsync(message);
     }
 
-    /// <summary>
-    /// GetWorkoutPlanWithPhotoAsync - Fotoğraf ile birlikte egzersiz planı önerisi alır
-    /// AI Entegrasyonu: Fotoğraf yükleme desteği ile görsel analiz yaparak özelleştirilmiş plan oluşturur
-    /// Fotoğraf desteği: Base64 encoding ile fotoğraf gönderimi
-    /// </summary>
-    /// <param name="bodyType">Vücut tipi</param>
-    /// <param name="height">Boy (cm) (opsiyonel)</param>
-    /// <param name="weight">Kilo (kg) (opsiyonel)</param>
-    /// <param name="goal">Hedef (örn: "Fitness", "Kilo verme")</param>
-    /// <param name="photoFile">Yüklenen fotoğraf (opsiyonel)</param>
-    /// <returns>Egzersiz planı önerisi</returns>
+    // Fotoğraf ve ölçülerle birlikte egzersiz planı üretir.
     public async Task<string> GetWorkoutPlanWithPhotoAsync(
         string bodyType,
         int? height,
@@ -168,15 +124,7 @@ Cevabı Türkçe ver.
         return await CallGeminiAPIAsync(promptText, photoFile);
     }
 
-    /// <summary>
-    /// CallGeminiAPIAsync - Gemini API'ye istek gönderir ve yanıt alır
-    /// AI Entegrasyonu: HTTP POST isteği ile Gemini API'ye bağlanır
-    /// Fotoğraf desteği: Base64 encoding ile fotoğraf gönderimi
-    /// Hata yönetimi: API hatalarını yakalar ve kullanıcı dostu mesajlar döndürür
-    /// </summary>
-    /// <param name="promptText">AI'ya gönderilecek metin</param>
-    /// <param name="photoFile">Yüklenen fotoğraf (opsiyonel)</param>
-    /// <returns>AI yanıtı</returns>
+    // Gemini API'ye HTTP isteği gönderip gelen cevabı çözen yardımcı metot.
     private async Task<string> CallGeminiAPIAsync(string promptText, IFormFile? photoFile)
     {
         if (string.IsNullOrEmpty(_options.ApiKey))
@@ -223,58 +171,181 @@ Cevabı Türkçe ver.
             }
         };
 
-        try
+        // Retry mekanizması - maksimum 5 deneme (rate limit için daha fazla deneme)
+        int maxRetries = 5;
+        int baseRetryDelay = 3000; // 3 saniye başlangıç bekleme süresi
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var json = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_options.Model}:generateContent?key={_options.ApiKey}";
-
-            var response = await _httpClient.PostAsync(url, content);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                try
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Ücretsiz hesaplar için: Önce v1beta, sonra v1 API versiyonunu dene
+                // Google AI Studio ücretsiz tier'ı için v1beta genellikle çalışır
+                var apiVersions = new[] { "v1beta", "v1" };
+                HttpResponseMessage? response = null;
+                string? lastError = null;
+                bool success = false;
+                
+                foreach (var apiVersion in apiVersions)
                 {
-                    var errorJson = JsonDocument.Parse(errorContent);
-                    if (errorJson.RootElement.TryGetProperty("error", out var errorElement))
+                    try
                     {
-                        var errorMessage = errorElement.TryGetProperty("message", out var msgElement)
-                            ? msgElement.GetString()
-                            : errorElement.GetRawText();
-                        return $"API hatası: {errorMessage}";
+                        var url = $"https://generativelanguage.googleapis.com/{apiVersion}/models/{_options.Model}:generateContent?key={_options.ApiKey}";
+                        response = await _httpClient.PostAsync(url, content);
+                        
+                        if (response.IsSuccessStatusCode)
+                        {
+                            // Başarılı API versiyonunu bulduk
+                            success = true;
+                            break;
+                        }
+                        else
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync();
+                            lastError = errorContent;
+                            // Sonraki API versiyonunu dene
+                            continue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = ex.Message;
+                        // Sonraki API versiyonunu dene
+                        continue;
                     }
                 }
-                catch
+                
+                // Hiçbir API versiyonu çalışmadıysa hata kontrolü yap
+                if (!success || response == null || !response.IsSuccessStatusCode)
                 {
-                    // JSON parse edilemediyse ham hata mesajını döndür
+                    if (!string.IsNullOrEmpty(lastError))
+                    {
+                        try
+                        {
+                            var errorJson = JsonDocument.Parse(lastError);
+                            if (errorJson.RootElement.TryGetProperty("error", out var errorElement))
+                            {
+                                var errorMessage = errorElement.TryGetProperty("message", out var msgElement)
+                                    ? msgElement.GetString()
+                                    : errorElement.GetRawText();
+                                
+                                // Quota hatası kontrolü
+                                if (!string.IsNullOrEmpty(errorMessage) && 
+                                    (errorMessage.Contains("quota", StringComparison.OrdinalIgnoreCase) || 
+                                     errorMessage.Contains("Quota exceeded", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    var retryTimeMatch = System.Text.RegularExpressions.Regex.Match(errorMessage, @"retry in (\d+\.?\d*)s", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                    if (retryTimeMatch.Success && retryTimeMatch.Groups.Count > 1 && 
+                                        double.TryParse(retryTimeMatch.Groups[1].Value, out var retrySeconds))
+                                    {
+                                        if (attempt < maxRetries)
+                                        {
+                                            await Task.Delay((int)(retrySeconds * 1000) + 1000);
+                                            continue;
+                                        }
+                                    }
+                                    return "Üzgünüm, şu anda yapay zekâ servisinin kullanım limiti aşılmış. Lütfen birkaç dakika sonra tekrar deneyin. (Quota limiti aşıldı)";
+                                }
+                                
+                                // Rate limit hatası (429)
+                                if (!string.IsNullOrEmpty(errorMessage) && 
+                                    (errorMessage.Contains("rate limit", StringComparison.OrdinalIgnoreCase) || 
+                                     errorMessage.Contains("429", StringComparison.OrdinalIgnoreCase) ||
+                                     errorMessage.Contains("too many requests", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    if (attempt < maxRetries)
+                                    {
+                                        var waitTime = baseRetryDelay * (int)Math.Pow(2, attempt - 1);
+                                        await Task.Delay(waitTime);
+                                        continue;
+                                    }
+                                    return "Çok fazla istek gönderildi. Lütfen 1-2 dakika bekleyip tekrar deneyin. (Rate limit aşıldı)";
+                                }
+                                
+                                // API anahtarı süresi dolmuş hatası
+                                if (!string.IsNullOrEmpty(errorMessage) && 
+                                    (errorMessage.Contains("expired", StringComparison.OrdinalIgnoreCase) ||
+                                     errorMessage.Contains("API key expired", StringComparison.OrdinalIgnoreCase) ||
+                                     errorMessage.Contains("invalid API key", StringComparison.OrdinalIgnoreCase) ||
+                                     errorMessage.Contains("API key not valid", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    return "❌ API anahtarı süresi dolmuş veya geçersiz. Lütfen Google AI Studio'dan (https://aistudio.google.com/) yeni bir API anahtarı oluşturun ve appsettings.json dosyasına ekleyin.";
+                                }
+                                
+                                // Model bulunamadı hatası için özel mesaj
+                                if (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("not found"))
+                                {
+                                    // Son denemede değilse tekrar dene
+                                    if (attempt < maxRetries)
+                                    {
+                                        await Task.Delay(baseRetryDelay * attempt);
+                                        continue;
+                                    }
+                                    return "❌ Model bulunamadı. Lütfen Google AI Studio'dan (https://aistudio.google.com/) yeni bir API anahtarı oluşturun veya appsettings.json dosyasında 'Model' ayarını kontrol edin.";
+                                }
+                                
+                                return $"❌ API hatası: {errorMessage}";
+                            }
+                        }
+                        catch { }
+                    }
+                    
+                    // Son denemede değilse tekrar dene
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(baseRetryDelay * attempt);
+                        continue;
+                    }
+                    
+                    return "API hatası: Gemini API'sine bağlanılamadı. Lütfen API anahtarınızı kontrol edin.";
                 }
-                return $"Üzgünüm, şu an yapay zekâ servisinden cevap alınamadı. (HTTP {response.StatusCode})";
+                
+                // Başarılı yanıtı işle
+                var responseContent = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseContent);
+
+                // Gemini cevabındaki ilk text parçasını yakala
+                if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
+                    candidates.GetArrayLength() > 0)
+                {
+                    var firstCandidate = candidates[0];
+                    if (firstCandidate.TryGetProperty("content", out var contentElement) &&
+                        contentElement.TryGetProperty("parts", out var partsElement) &&
+                        partsElement.GetArrayLength() > 0 &&
+                        partsElement[0].TryGetProperty("text", out var textElement))
+                    {
+                        return textElement.GetString() ?? "Herhangi bir yanıt alınamadı.";
+                    }
+                }
+
+                return "Yanıt formatı beklenenden farklı.";
             }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(responseContent);
-
-            // Gemini cevabındaki ilk text parçasını yakala
-            if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
-                candidates.GetArrayLength() > 0)
+            catch (HttpRequestException ex) when (ex.Message.Contains("429") || ex.Message.Contains("Too Many Requests"))
             {
-                var firstCandidate = candidates[0];
-                if (firstCandidate.TryGetProperty("content", out var contentElement) &&
-                    contentElement.TryGetProperty("parts", out var partsElement) &&
-                    partsElement.GetArrayLength() > 0 &&
-                    partsElement[0].TryGetProperty("text", out var textElement))
+                if (attempt < maxRetries)
                 {
-                    return textElement.GetString() ?? "Herhangi bir yanıt alınamadı.";
+                    var waitTime = baseRetryDelay * (int)Math.Pow(2, attempt - 1);
+                    await Task.Delay(waitTime);
+                    continue;
                 }
+                return "Çok fazla istek gönderildi. Lütfen 1-2 dakika bekleyip tekrar deneyin. (Rate limit aşıldı)";
             }
+            catch (Exception ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    var waitTime = baseRetryDelay * attempt;
+                    await Task.Delay(waitTime);
+                    continue;
+                }
+                return $"Bir hata oluştu: {ex.Message}";
+            }
+        }
 
-            return "Yanıt formatı beklenenden farklı.";
-        }
-        catch (Exception ex)
-        {
-            return $"Bir hata oluştu: {ex.Message}";
-        }
+        // Tüm denemeler başarısız oldu
+        return "Yapay zekâ servisine bağlanılamadı. Lütfen daha sonra tekrar deneyin.";
     }
 }

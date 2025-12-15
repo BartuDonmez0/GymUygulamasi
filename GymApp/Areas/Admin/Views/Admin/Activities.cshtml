@@ -8,11 +8,16 @@
         <div class="col-12 d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="mb-0"><i class="bi bi-list-check"></i> Aktiviteler</h2>
-                <p class="text-muted">Toplam @Model.Count aktivite</p>
+                <p id="activityCount" class="text-muted">Toplam @Model.Count aktivite</p>
             </div>
-            <a href="@Url.Action("CreateActivity", "Admin")" class="btn btn-warning">
-                <i class="bi bi-plus-circle"></i> Yeni Aktivite Ekle
-            </a>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" onclick="loadActivitiesFromApi()">
+                    <i class="bi bi-arrow-repeat"></i> API'den Yenile
+                </button>
+                <a href="@Url.Action("CreateActivity", "Admin")" class="btn btn-warning">
+                    <i class="bi bi-plus-circle"></i> Yeni Aktivite Ekle
+                </a>
+            </div>
         </div>
     </div>
 
@@ -34,7 +39,7 @@
                                 <th>İşlemler</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="activitiesTableBody">
                             @foreach (var activity in Model)
                             {
                                 <tr>
@@ -49,13 +54,9 @@
                                         <a href="@Url.Action("EditActivity", "Admin", new { id = activity.Id })" class="btn btn-sm btn-primary">
                                             <i class="bi bi-pencil"></i> Düzenle
                                         </a>
-                                        <form asp-action="DeleteActivity" method="post" style="display: inline;" onsubmit="return confirm('Bu aktiviteyi silmek istediğinize emin misiniz?');">
-                                            <input type="hidden" name="id" value="@activity.Id" />
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i> Sil
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteActivity(@activity.Id, this)">
+                                            <i class="bi bi-trash"></i> Sil
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -78,4 +79,144 @@
         </a>
     </div>
 </div>
+
+@* Bu sayfa aktiviteleri REST API (ApiController.GetActivities) üzerinden LINQ sorgusu ile de yükleyebilir. *@
+
+<script>
+    async function loadActivitiesFromApi() {
+        const tbody = document.getElementById('activitiesTableBody');
+        const countElement = document.getElementById('activityCount');
+
+        if (!tbody) return;
+
+        // Yükleniyor satırı
+        tbody.innerHTML = `<tr>
+            <td colspan="8" class="text-center">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Veriler API'den getiriliyor...
+            </td>
+        </tr>`;
+
+        try {
+            const response = await fetch('/api/api/activities');
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Bilinmeyen API hatası');
+            }
+
+            const activities = result.data || [];
+
+            if (countElement) {
+                countElement.textContent = `Toplam ${activities.length} aktivite (REST API üzerinden)`;
+            }
+
+            if (!activities.length) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="8" class="text-center">
+                        <i class="bi bi-info-circle"></i> API'den aktivite bulunamadı.
+                    </td>
+                </tr>`;
+                return;
+            }
+
+            const rows = activities.map(a => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const id = a.id || a.Id || 0;
+                const name = a.name || a.Name || '';
+                const description = (a.description || a.Description || '').length > 50
+                    ? (a.description || a.Description || '').substring(0, 50) + '...'
+                    : (a.description || a.Description || '');
+                const type = a.type || a.Type || '';
+                const duration = a.duration || a.Duration || 0;
+                const price = a.price || a.Price || 0;
+                const gymName = a.gymCenterName || a.GymCenterName || 'N/A';
+
+                return `<tr>
+                    <td>${id}</td>
+                    <td>${name}</td>
+                    <td>${description}</td>
+                    <td>${type}</td>
+                    <td>${duration}</td>
+                    <td>${price}</td>
+                    <td>${gymName}</td>
+                    <td>
+                        <a href="/Admin/Admin/EditActivity/${id}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteActivity(${id}, this)">
+                            <i class="bi bi-trash"></i> Sil
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        } catch (error) {
+            console.error('API hata:', error);
+            tbody.innerHTML = `<tr>
+                <td colspan="8" class="text-center text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    API'den veriler alınırken hata oluştu: ${error.message}
+                </td>
+            </tr>`;
+            if (countElement) {
+                countElement.textContent = "Aktiviteler yüklenemedi (API hatası)";
+            }
+        }
+    }
+
+    // DELETE: API üzerinden aktivite silme
+    async function deleteActivity(id, buttonElement) {
+        if (!confirm('Bu aktiviteyi silmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        const originalText = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Siliniyor...';
+
+        try {
+            const response = await fetch(`/api/api/activities/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                // Başarılı - satırı kaldır
+                const row = buttonElement.closest('tr');
+                if (row) {
+                    row.remove();
+                }
+                // Sayfayı yenile
+                await loadActivitiesFromApi();
+                alert('Aktivite başarıyla silindi.');
+            } else {
+                throw new Error(result.message || 'Silme işlemi başarısız');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Aktivite silinirken hata oluştu: ' + error.message);
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalText;
+        }
+    }
+
+    // Sayfa yüklendiğinde API'den verileri çek
+    document.addEventListener('DOMContentLoaded', function() {
+        loadActivitiesFromApi();
+    });
+</script>
 

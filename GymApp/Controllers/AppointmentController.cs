@@ -6,12 +6,7 @@ using GymApp.Repositories;
 
 namespace GymApp.Controllers;
 
-/// <summary>
-/// Appointment Controller - Randevu yönetimi için CRUD işlemlerini yönetir
-/// Create işlemi: Yeni randevu oluşturma
-/// Read işlemi: Randevu listeleme (kullanıcı kendi randevularını, admin tüm randevuları görür)
-/// Authorization: Giriş yapmış kullanıcılar erişebilir, admin tüm randevuları görebilir
-/// </summary>
+// Üyelerin randevu oluşturma ve listeleme işlemlerini yöneten controller.
 [Authorize(Roles = "Admin,User")] // Rol bazlı yetkilendirme: Admin veya User rolleri erişebilir
 public class AppointmentController : Controller
 {
@@ -21,9 +16,7 @@ public class AppointmentController : Controller
     private readonly IActivityService _activityService;
     private readonly IGymCenterService _gymCenterService;
 
-    /// <summary>
-    /// Constructor - Dependency injection ile servisleri alır
-    /// </summary>
+    // Constructor - randevu ile ilgili servis ve repository bağımlılıklarını alır.
     public AppointmentController(
         IAppointmentService appointmentService,
         IMemberRepository memberRepository,
@@ -38,12 +31,7 @@ public class AppointmentController : Controller
         _gymCenterService = gymCenterService;
     }
 
-    /// <summary>
-    /// Index - Randevuları listeler
-    /// Read işlemi: Kullanıcı kendi randevularını, admin tüm randevuları görür
-    /// Authorization: Giriş yapmış kullanıcılar erişebilir
-    /// Rol bazlı yetkilendirme: Admin ve Üye ayrımı yapılır
-    /// </summary>
+    // GET: /Appointment - Kullanıcının veya adminin randevularını listeler.
     public async Task<IActionResult> Index()
     {
         // Giriş kontrolü
@@ -77,11 +65,7 @@ public class AppointmentController : Controller
         return View(appointments);
     }
 
-    /// <summary>
-    /// Create GET - Yeni randevu oluşturma formunu gösterir
-    /// Create işlemi: Randevu oluşturma formu
-    /// Authorization: Giriş yapmış üyeler erişebilir, admin erişemez
-    /// </summary>
+    // GET: /Appointment/Create - Yeni randevu oluşturma formunu gösterir.
     /// <param name="trainerId">Antrenör ID'si (opsiyonel - önceden seçilmiş antrenör için)</param>
     [HttpGet]
     public async Task<IActionResult> Create(int? trainerId)
@@ -124,10 +108,7 @@ public class AppointmentController : Controller
         return View();
     }
 
-    /// <summary>
-    /// GetTrainerData - Antrenör bilgilerini JSON formatında döndürür
-    /// AJAX endpoint: Antrenör seçildiğinde aktiviteleri, spor salonunu ve çalışma saatlerini getirir
-    /// </summary>
+    // AJAX: Antrenör seçildiğinde aktiviteleri, salonu ve çalışma saatlerini JSON olarak döndürür.
     /// <param name="trainerId">Antrenör ID'si</param>
     [HttpGet]
     public async Task<IActionResult> GetTrainerData(int trainerId)
@@ -211,10 +192,7 @@ public class AppointmentController : Controller
         });
     }
 
-    /// <summary>
-    /// CheckAvailability - Antrenörün belirli tarih ve saatte müsait olup olmadığını kontrol eder
-    /// AJAX endpoint: Client-side validation için kullanılır
-    /// </summary>
+    // AJAX: Antrenörün belirli tarih ve saatte müsait olup olmadığını kontrol eder.
     /// <param name="trainerId">Antrenör ID'si</param>
     /// <param name="date">Randevu tarihi</param>
     /// <param name="time">Randevu saati</param>
@@ -229,10 +207,7 @@ public class AppointmentController : Controller
         return Json(new { exists = false });
     }
 
-    /// <summary>
-    /// CheckMemberAvailability - Kullanıcının belirli tarih ve saatte onaylı randevusu olup olmadığını kontrol eder
-    /// AJAX endpoint: Client-side validation için kullanılır
-    /// </summary>
+    // AJAX: Üyenin aynı tarih/saatte onaylı randevusu olup olmadığını kontrol eder.
     /// <param name="date">Randevu tarihi</param>
     /// <param name="time">Randevu saati</param>
     [HttpGet]
@@ -258,11 +233,7 @@ public class AppointmentController : Controller
         return Json(new { exists = false });
     }
 
-    /// <summary>
-    /// GetBookedTimes - Belirli bir tarihte rezerve edilmiş saatleri getirir
-    /// AJAX endpoint: Randevu formunda müsait saatleri göstermek için kullanılır
-    /// LINQ sorgusu ile filtreleme: Tarih ve duruma göre filtreleme yapar
-    /// </summary>
+    // AJAX: Belirli tarihte rezerve edilmiş saatleri listeleyip front-end'e gönderir.
     /// <param name="trainerId">Antrenör ID'si</param>
     /// <param name="date">Randevu tarihi</param>
     [HttpGet]
@@ -304,12 +275,7 @@ public class AppointmentController : Controller
         return Json(new { bookedTimes = new List<string>() });
     }
 
-    /// <summary>
-    /// Create POST - Yeni randevu oluşturur
-    /// Create işlemi: Randevu kaydı oluşturma
-    /// Server-side validation: ModelState.IsValid kontrolü ve özel validasyonlar
-    /// Authorization: Sadece User rolü erişebilir, admin erişemez
-    /// </summary>
+    // POST: /Appointment/Create - Yeni randevu oluşturur, saat çakışmalarını kontrol eder.
     /// <param name="appointment">Randevu bilgileri</param>
     [HttpPost]
     [ValidateAntiForgeryToken] // CSRF koruması

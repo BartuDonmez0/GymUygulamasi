@@ -2,6 +2,7 @@ using GymApp.Entities;
 
 namespace GymApp.Repositories;
 
+// GymCenter için özel sorgu ve filtreleme imzalarını tanımlar.
 public interface IGymCenterRepository : IRepository<GymCenter>
 {
     Task<IEnumerable<GymCenter>> GetWithActivitiesAsync();

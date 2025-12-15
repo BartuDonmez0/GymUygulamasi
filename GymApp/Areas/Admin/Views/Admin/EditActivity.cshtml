@@ -12,9 +12,9 @@
                     <h3 class="mb-0"><i class="bi bi-pencil"></i> Aktivite Düzenle</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditActivity" method="post">
-                        <input type="hidden" asp-for="Id" />
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <form id="editActivityForm" onsubmit="return updateActivityViaApi(event, @Model.Id)">
+                        <input type="hidden" id="ActivityId" value="@Model.Id" />
+                        <div id="validationSummary" class="text-danger mb-3" style="display: none;"></div>
 
                         <div class="mb-3">
                             <label asp-for="GymCenterId" class="form-label">Spor Salonu</label>
@@ -119,5 +119,125 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // API üzerinden aktivite güncelleme
+        async function updateActivityViaApi(event, activityId) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            const validationSummary = document.getElementById('validationSummary');
+            
+            // Form verilerini topla (API camelCase bekliyor)
+            const gymCenterIdValue = document.querySelector('select[name="GymCenterId"]').value;
+            const activityData = {
+                id: activityId,
+                gymCenterId: parseInt(gymCenterIdValue) || 0,
+                name: document.querySelector('input[name="Name"]').value.trim(),
+                description: document.querySelector('textarea[name="Description"]').value.trim(),
+                type: parseInt(document.querySelector('select[name="Type"]').value) || 0,
+                duration: parseInt(document.querySelector('input[name="Duration"]').value) || 0,
+                price: parseFloat(document.querySelector('input[name="Price"]').value) || 0,
+                imageUrl: document.querySelector('input[name="ImageUrl"]')?.value.trim() || ''
+            };
+            
+            // Validasyon
+            if (!activityData.gymCenterId || activityData.gymCenterId <= 0) {
+                showValidationError('Lütfen bir spor salonu seçin.');
+                return false;
+            }
+            
+            if (!activityData.name || activityData.name.trim() === '') {
+                showValidationError('Aktivite adı zorunludur.');
+                return false;
+            }
+            
+            if (!activityData.type || activityData.type <= 0) {
+                showValidationError('Lütfen bir aktivite tipi seçin.');
+                return false;
+            }
+            
+            if (activityData.duration <= 0) {
+                showValidationError('Süre 1 dakikadan fazla olmalıdır.');
+                return false;
+            }
+            
+            if (activityData.price < 0) {
+                showValidationError('Fiyat 0 veya daha büyük olmalıdır.');
+                return false;
+            }
+            
+            // Loading durumu
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Güncelleniyor...';
+            validationSummary.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/api/activities/${activityId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(activityData)
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        console.error('API Error Response:', errorData);
+                        
+                        if (errorData.errors) {
+                            // ModelState hatalarını göster
+                            const errorMessages = [];
+                            Object.keys(errorData.errors).forEach(key => {
+                                const fieldErrors = errorData.errors[key];
+                                if (Array.isArray(fieldErrors)) {
+                                    fieldErrors.forEach(err => {
+                                        errorMessages.push(`${key}: ${err}`);
+                                    });
+                                } else {
+                                    errorMessages.push(`${key}: ${fieldErrors}`);
+                                }
+                            });
+                            errorMessage = errorMessages.join('; ') || errorData.message || errorMessage;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing response:', parseError);
+                        const text = await response.text().catch(() => '');
+                        errorMessage = `HTTP ${response.status}: ${text || 'Bilinmeyen hata'}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Aktivite başarıyla güncellendi!');
+                    window.location.href = '/Admin/Admin/Activities';
+                } else {
+                    throw new Error(result.message || 'Aktivite güncellenemedi');
+                }
+            } catch (error) {
+                console.error('Update error:', error);
+                showValidationError('Aktivite güncellenirken hata oluştu: ' + error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
+            
+            return false;
+        }
+        
+        function showValidationError(message) {
+            const validationSummary = document.getElementById('validationSummary');
+            validationSummary.innerHTML = '<ul class="mb-0"><li>' + message + '</li></ul>';
+            validationSummary.style.display = 'block';
+        }
+    </script>
 }
 

@@ -9,11 +9,16 @@
         <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div>
                 <h2 class="mb-0"><i class="bi bi-person-badge"></i> Antrenörler</h2>
-                <p class="text-muted mb-0">Toplam @Model.Count antrenör</p>
+                <p id="trainerCount" class="text-muted mb-0">Toplam @Model.Count antrenör</p>
             </div>
-            <a href="@Url.Action("CreateTrainer", "Admin")" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Yeni Antrenör Ekle</span><span class="d-sm-none">Yeni Ekle</span>
-            </a>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" onclick="loadTrainersFromApi()">
+                    <i class="bi bi-arrow-repeat"></i> API'den Yenile
+                </button>
+                <a href="@Url.Action("CreateTrainer", "Admin")" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Yeni Antrenör Ekle</span><span class="d-sm-none">Yeni Ekle</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -36,7 +41,7 @@
                                 <th>İşlemler</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="trainersTableBody">
                             @foreach (var trainer in Model)
                             {
                                 <tr>
@@ -134,13 +139,9 @@
                                         <a href="@Url.Action("EditTrainer", "Admin", new { id = trainer.Id })" class="btn btn-sm btn-primary">
                                             <i class="bi bi-pencil"></i> Düzenle
                                         </a>
-                                        <form asp-action="DeleteTrainer" method="post" style="display: inline;" onsubmit="return confirm('Bu antrenörü silmek istediğinize emin misiniz?');">
-                                            <input type="hidden" name="id" value="@trainer.Id" />
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i> Sil
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTrainer(@trainer.Id, this)">
+                                            <i class="bi bi-trash"></i> Sil
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -308,4 +309,192 @@
         }
     }
 </style>
+
+<script>
+    // API üzerinden antrenörleri yükleme
+    async function loadTrainersFromApi() {
+        const tbody = document.getElementById('trainersTableBody');
+        const countElement = document.getElementById('trainerCount');
+
+        if (!tbody) return;
+
+        // Yükleniyor satırı
+        tbody.innerHTML = `<tr>
+            <td colspan="9" class="text-center">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Veriler API'den getiriliyor...
+            </td>
+        </tr>`;
+
+        try {
+            const response = await fetch('/api/api/trainers');
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Bilinmeyen API hatası');
+            }
+
+            const trainers = result.data || [];
+
+            if (countElement) {
+                countElement.textContent = `Toplam ${trainers.length} antrenör (REST API üzerinden)`;
+            }
+
+            if (!trainers.length) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="9" class="text-center">
+                        <i class="bi bi-info-circle"></i> API'den antrenör bulunamadı.
+                    </td>
+                </tr>`;
+                return;
+            }
+
+            const rows = trainers.map(t => {
+                // Property isimleri hem camelCase hem PascalCase destekleniyor
+                const firstName = t.firstName || t.FirstName || '';
+                const lastName = t.lastName || t.LastName || '';
+                const profilePhotoUrl = t.profilePhotoUrl || t.ProfilePhotoUrl || '';
+                const workingHoursJson = t.workingHoursJson || t.WorkingHoursJson || '[]';
+                
+                // İlk harfleri güvenli şekilde al
+                const firstInitial = firstName && firstName.length > 0 ? firstName[0] : '?';
+                const lastInitial = lastName && lastName.length > 0 ? lastName[0] : '?';
+                
+                const photoHtml = profilePhotoUrl 
+                    ? `<img src="${profilePhotoUrl}" alt="${firstName} ${lastName}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/50?text=${firstInitial}'" />`
+                    : `<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; font-weight: bold;">${firstInitial}${lastInitial}</div>`;
+
+                // WorkingHoursJson parse et
+                let workingHoursDisplay = "Belirtilmemiş";
+                try {
+                    if (workingHoursJson && workingHoursJson !== "[]") {
+                        const workingHours = JSON.parse(workingHoursJson);
+                        const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+                        const workingHoursList = [];
+                        
+                        if (Array.isArray(workingHours)) {
+                            workingHours.forEach(item => {
+                                const day = item.Day !== undefined ? item.Day : (item.day !== undefined ? item.day : undefined);
+                                if (day !== undefined) {
+                                    const dayName = dayNames[day] || `Gün ${day}`;
+                                    const hours = item.Hours || item.hours;
+                                    const timeRange = item.TimeRange || item.timeRange;
+                                    
+                                    if (hours && Array.isArray(hours)) {
+                                        if (hours.length > 0) {
+                                            workingHoursList.push(`${dayName}: ${hours.join(", ")}`);
+                                        }
+                                    } else if (timeRange) {
+                                        workingHoursList.push(`${dayName} ${timeRange}`);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        if (workingHoursList.length > 0) {
+                            workingHoursDisplay = workingHoursList.join(" | ");
+                        }
+                    }
+                } catch (e) {
+                    console.error('WorkingHoursJson parse hatası:', e);
+                    workingHoursDisplay = "Belirtilmemiş";
+                }
+
+                const workingHoursHtml = workingHoursDisplay !== "Belirtilmemiş"
+                    ? `<span class="text-dark" style="font-size: 0.875rem; font-weight: 500;">${workingHoursDisplay}</span>`
+                    : `<span class="text-muted">${workingHoursDisplay}</span>`;
+
+                const trainerId = t.id || t.Id || 0;
+                const email = t.email || t.Email || '';
+                const phone = t.phone || t.Phone || '';
+                const specialization = t.specialization || t.Specialization || '';
+
+                return `<tr>
+                    <td>${photoHtml}</td>
+                    <td>${trainerId}</td>
+                    <td>${firstName}</td>
+                    <td>${lastName}</td>
+                    <td>${email}</td>
+                    <td>${phone}</td>
+                    <td>${specialization}</td>
+                    <td>${workingHoursHtml}</td>
+                    <td>
+                        <a href="/Admin/Admin/EditTrainer/${trainerId}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTrainer(${trainerId}, this)">
+                            <i class="bi bi-trash"></i> Sil
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        } catch (error) {
+            console.error('API hata:', error);
+            tbody.innerHTML = `<tr>
+                <td colspan="9" class="text-center text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    API'den veriler alınırken hata oluştu: ${error.message}
+                </td>
+            </tr>`;
+            if (countElement) {
+                countElement.textContent = "Antrenörler yüklenemedi (API hatası)";
+            }
+        }
+    }
+
+    // DELETE: API üzerinden antrenör silme
+    async function deleteTrainer(id, buttonElement) {
+        if (!confirm('Bu antrenörü silmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        const originalText = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Siliniyor...';
+
+        try {
+            const response = await fetch(`/api/api/trainers/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                // Başarılı - satırı kaldır
+                const row = buttonElement.closest('tr');
+                if (row) {
+                    row.remove();
+                }
+                // Sayfayı yenile
+                await loadTrainersFromApi();
+                alert('Antrenör başarıyla silindi.');
+            } else {
+                throw new Error(result.message || 'Silme işlemi başarısız');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Antrenör silinirken hata oluştu: ' + error.message);
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalText;
+        }
+    }
+
+    // Sayfa yüklendiğinde API'den verileri çek
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTrainersFromApi();
+    });
+</script>
 

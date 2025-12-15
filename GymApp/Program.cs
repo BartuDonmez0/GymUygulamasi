@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using GymApp.Data;
 using GymApp.Repositories;
 using GymApp.Services;
+using GymApp.Entities;
 
+// ASP.NET Core uygulamasının giriş noktası:
+// - Servislerin (DbContext, repository, service, AI entegrasyonu) kaydı
+// - Kimlik doğrulama / yetkilendirme ayarları
+// - HTTP pipeline ve routing yapılandırması
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================
@@ -13,7 +18,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // MVC ve API controller desteği eklenir - Front-End ve REST API desteği
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers(); // REST API için controller desteği
+// REST API için controller desteği - JSON serializer ayarları ile
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // JSON serializer ayarları - JavaScript camelCase ile uyumlu
+        // API response'ları camelCase formatında döner (firstName, lastName, vb.)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // Session configuration - Kullanıcı oturum yönetimi için
 // Rol bazlı yetkilendirme: Session'da kullanıcı bilgileri ve rol bilgisi saklanır
@@ -98,6 +111,35 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IChatMessageService, ChatMessageService>();
 
 var app = builder.Build();
+
+// ============================================
+// VERİTABANI BAŞLANGIÇ VERİLERİ (SEED DATA)
+// ============================================
+// Rol bazlı yetkilendirme için Admin ve User rollerini veritabanında sakla
+// Admin: ogrencinumarasi@sakarya.edu.tr / Şifre: sau
+using (var scope = app.Services.CreateScope())
+{
+    var scopedServices = scope.ServiceProvider;
+    var db = scopedServices.GetRequiredService<GymAppDbContext>();
+
+    // Admin kullanıcısını User tablosunda oluştur (yoksa)
+    const string adminEmail = "G231210561@sakarya.edu.tr";
+    const string adminPassword = "sau";
+
+    if (!await db.Users.AnyAsync(u => u.Email == adminEmail))
+    {
+        var adminUser = new User
+        {
+            Email = adminEmail,
+            Password = adminPassword,
+            Role = "Admin",
+            CreatedDate = DateTime.UtcNow
+        };
+
+        db.Users.Add(adminUser);
+        await db.SaveChangesAsync();
+    }
+}
 
 // ============================================
 // HTTP REQUEST PIPELINE YAPILANDIRMASI

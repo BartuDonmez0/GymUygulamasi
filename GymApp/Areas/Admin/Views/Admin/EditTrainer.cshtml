@@ -11,9 +11,10 @@
                     <h3 class="mb-0"><i class="bi bi-pencil"></i> Antrenör Düzenle</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditTrainer" method="post">
-                        <input type="hidden" asp-for="Id" />
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <form id="editTrainerForm" onsubmit="return updateTrainerViaApi(event, @Model.Id)">
+                        <input type="hidden" id="TrainerId" value="@Model.Id" />
+                        <div id="validationSummary" class="text-danger mb-3" style="display: none;"></div>
+                        <div id="successMessage" class="alert alert-success mb-3" style="display: none;"></div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -420,7 +421,10 @@
                 return;
             }
             
+            // workingHoursData'yı güncelle
             workingHoursData[day] = selectedHours;
+            
+            // JSON'u güncelle
             updateWorkingHoursJson();
             
             // Hata mesajını gizle (çalışma saati seçildi)
@@ -429,13 +433,24 @@
                 errorDiv.classList.add('d-none');
             }
             
+            // Başarı mesajını göster
+            const dayHoursContainer = document.getElementById(`day_${day}_hours`);
+            const existingAlert = dayHoursContainer.querySelector('.alert-success');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
             alertDiv.innerHTML = `
-                <strong>Başarılı!</strong> ${daysOfWeek.find(d => d.value === day)?.text} günü için ${selectedHours.length} saat kaydedildi.
+                <strong>Başarılı!</strong> ${daysOfWeek.find(d => d.value == day)?.text} günü için ${selectedHours.length} saat kaydedildi.
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            document.getElementById(`day_${day}_hours`).appendChild(alertDiv);
+            dayHoursContainer.appendChild(alertDiv);
+            
+            // JSON input'unu konsola yazdır (debug için)
+            const jsonInput = document.getElementById('workingHoursJsonInput');
+            console.log('Güncellenen çalışma saatleri JSON:', jsonInput.value);
             
             setTimeout(() => {
                 alertDiv.remove();
@@ -506,7 +521,190 @@
             }
             
             console.log('Form submit ediliyor, WorkingHoursJson:', jsonInput.value);
+            console.log('workingHoursData:', workingHoursData);
         });
     </script>
+
+<script>
+    // API üzerinden antrenör güncelleme
+    async function updateTrainerViaApi(event, trainerId) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        const validationSummary = document.getElementById('validationSummary');
+        const successMessage = document.getElementById('successMessage');
+        
+        // Form verilerini topla
+        const selectedActivityIds = Array.from(document.querySelectorAll('.activity-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+        
+        // Specialization'ı seçilen aktivitelerden oluştur
+        let specialization = '';
+        if (selectedActivityIds.length > 0) {
+            const activityNames = [];
+            document.querySelectorAll('.activity-checkbox:checked').forEach(checkbox => {
+                const label = checkbox.closest('.form-check').querySelector('label');
+                if (label) {
+                    const activityName = label.textContent.split('(')[0].trim();
+                    if (activityName && !activityNames.includes(activityName)) {
+                        activityNames.push(activityName);
+                    }
+                }
+            });
+            specialization = activityNames.join(', ') || 'Belirtilmemiş';
+        } else {
+            specialization = 'Belirtilmemiş';
+        }
+        
+        // Çalışma saatlerini güncelle (tüm checkbox değişikliklerini kaydet)
+        document.querySelectorAll('.hour-checkbox').forEach(checkbox => {
+            const day = checkbox.getAttribute('data-day');
+            const hour = checkbox.getAttribute('data-hour');
+            
+            if (!workingHoursData[day]) {
+                workingHoursData[day] = [];
+            }
+            
+            if (checkbox.checked) {
+                if (!workingHoursData[day].includes(hour)) {
+                    workingHoursData[day].push(hour);
+                }
+            } else {
+                workingHoursData[day] = workingHoursData[day].filter(h => h !== hour);
+            }
+        });
+        
+        // JSON'u güncelle
+        updateWorkingHoursJson();
+        
+        // Doğru ID ile çalışma saatlerini al
+        const workingHoursJsonInput = document.getElementById('workingHoursJsonInput');
+        let workingHoursJson = '[]';
+        
+        if (workingHoursJsonInput) {
+            workingHoursJson = workingHoursJsonInput.value || '[]';
+        } else {
+            // Eğer input bulunamazsa, workingHoursData'dan JSON oluştur
+            const dataArray = [];
+            Object.keys(workingHoursData).forEach(day => {
+                if (workingHoursData[day] && workingHoursData[day].length > 0) {
+                    dataArray.push({
+                        Day: parseInt(day),
+                        Hours: workingHoursData[day]
+                    });
+                }
+            });
+            workingHoursJson = JSON.stringify(dataArray);
+        }
+        
+        console.log('Güncellenecek çalışma saatleri:', workingHoursJson);
+        console.log('workingHoursData:', workingHoursData);
+        console.log('Specialization:', specialization);
+        
+        // API camelCase bekliyor
+        // Not: Antrenörlerde şifre güncellemesi yok, password gönderilmiyor
+        const trainerData = {
+            id: trainerId,
+            firstName: document.querySelector('input[name="FirstName"]').value.trim(),
+            lastName: document.querySelector('input[name="LastName"]').value.trim(),
+            email: document.querySelector('input[name="Email"]').value.trim(),
+            phone: document.querySelector('input[name="Phone"]').value.trim(),
+            profilePhotoUrl: document.querySelector('input[name="ProfilePhotoUrl"]')?.value.trim() || '',
+            gymCenterId: parseInt(document.getElementById('gymCenterSelect').value) || 0,
+            specialization: specialization,
+            workingHoursJson: workingHoursJson,
+            trainerActivities: selectedActivityIds.map(id => ({ activityId: id }))
+        };
+        
+        console.log('Gönderilecek trainerData:', trainerData);
+        
+        // Validasyon
+        if (!trainerData.firstName || trainerData.firstName.trim() === '') {
+            showValidationError('Ad alanı zorunludur.');
+            return false;
+        }
+        
+        if (!trainerData.gymCenterId || trainerData.gymCenterId <= 0) {
+            showValidationError('Lütfen bir spor salonu seçiniz.');
+            return false;
+        }
+        
+        // Loading durumu
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Güncelleniyor...';
+        validationSummary.style.display = 'none';
+        successMessage.style.display = 'none';
+        
+        try {
+            const response = await fetch(`/api/api/trainers/${trainerId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify(trainerData)
+            });
+            
+            if (!response.ok) {
+                let errorMessage = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    console.error('API Error Response:', errorData);
+                    
+                    if (errorData.errors) {
+                        // ModelState hatalarını göster
+                        const errorMessages = [];
+                        Object.keys(errorData.errors).forEach(key => {
+                            const fieldErrors = errorData.errors[key];
+                            if (Array.isArray(fieldErrors)) {
+                                fieldErrors.forEach(err => {
+                                    errorMessages.push(`${key}: ${err}`);
+                                });
+                            } else {
+                                errorMessages.push(`${key}: ${fieldErrors}`);
+                            }
+                        });
+                        errorMessage = errorMessages.join('; ') || errorData.message || errorMessage;
+                    } else if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing response:', parseError);
+                    const text = await response.text().catch(() => '');
+                    errorMessage = `HTTP ${response.status}: ${text || 'Bilinmeyen hata'}`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            const result = await response.json();
+            if (result.success) {
+                successMessage.textContent = 'Antrenör başarıyla güncellendi! Yönlendiriliyorsunuz...';
+                successMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '/Admin/Admin/Trainers';
+                }, 2000);
+            } else {
+                throw new Error(result.message || 'Antrenör güncellenemedi');
+            }
+        } catch (error) {
+            console.error('Update trainer error:', error);
+            showValidationError('Antrenör güncellenirken hata oluştu: ' + error.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+        
+        return false;
+    }
+    
+    function showValidationError(message) {
+        const validationSummary = document.getElementById('validationSummary');
+        validationSummary.innerHTML = '<ul class="mb-0"><li>' + message + '</li></ul>';
+        validationSummary.style.display = 'block';
+    }
+</script>
 }
 

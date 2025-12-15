@@ -2,6 +2,7 @@ using GymApp.Entities;
 
 namespace GymApp.Services;
 
+// Üye servisleri için temel CRUD imzalarını tanımlar.
 public interface IMemberService
 {
     Task<IEnumerable<Member>> GetAllMembersAsync();

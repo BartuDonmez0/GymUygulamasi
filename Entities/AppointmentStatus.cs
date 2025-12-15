@@ -1,5 +1,6 @@
 namespace GymApp.Entities;
 
+// Randevuların durumlarını (beklemede, onaylı vb.) temsil eden enum.
 public enum AppointmentStatus
 {
     Pending = 1,    // Beklemede

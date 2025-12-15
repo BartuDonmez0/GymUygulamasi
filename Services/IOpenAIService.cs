@@ -1,5 +1,6 @@
 namespace GymApp.Services;
 
+// OpenAI tabanlı yapay zeka servisleri için sözleşme.
 public interface IOpenAIService
 {
     Task<string> GetChatResponseAsync(string userMessage, string? userContext = null);

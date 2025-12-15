@@ -2,6 +2,7 @@ using GymApp.Entities;
 
 namespace GymApp.Repositories;
 
+// Appointment için özel sorgu ve kontrol imzalarını tanımlar.
 public interface IAppointmentRepository : IRepository<Appointment>
 {
     Task<IEnumerable<Appointment>> GetByMemberIdAsync(int memberId);

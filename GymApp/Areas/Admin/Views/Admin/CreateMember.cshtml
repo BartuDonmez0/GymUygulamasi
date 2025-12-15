@@ -1,0 +1,140 @@
+@{
+    ViewData["Title"] = "Yeni Kullanıcı Ekle";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="bi bi-person-plus"></i> Yeni Kullanıcı Ekle</h2>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form id="createMemberForm" onsubmit="createMemberViaApi(event)">
+                @Html.AntiForgeryToken()
+
+                <div id="validationSummary" class="alert alert-danger" style="display: none;"></div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Ad <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="FirstName" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Soyad <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="LastName" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">E-posta <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" name="Email" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" name="Phone">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Şifre <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" name="Password" required minlength="3">
+                    <small class="form-text text-muted">Minimum 3 karakter</small>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="@Url.Action("Members", "Admin")" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Geri Dön
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showValidationError(message) {
+        const validationSummary = document.getElementById('validationSummary');
+        validationSummary.textContent = message;
+        validationSummary.style.display = 'block';
+        setTimeout(() => {
+            validationSummary.style.display = 'none';
+        }, 5000);
+    }
+
+    async function createMemberViaApi(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        const validationSummary = document.getElementById('validationSummary');
+
+        const memberData = {
+            firstName: document.querySelector('input[name="FirstName"]').value.trim(),
+            lastName: document.querySelector('input[name="LastName"]').value.trim(),
+            email: document.querySelector('input[name="Email"]').value.trim(),
+            phone: document.querySelector('input[name="Phone"]')?.value.trim() || '',
+            password: document.querySelector('input[name="Password"]').value
+        };
+
+        // Validasyon
+        if (!memberData.firstName || !memberData.lastName || !memberData.email || !memberData.password) {
+            showValidationError('Lütfen tüm zorunlu alanları doldurun.');
+            return false;
+        }
+
+        if (memberData.password.length < 3) {
+            showValidationError('Şifre en az 3 karakter olmalıdır.');
+            return false;
+        }
+
+        var atSymbol = String.fromCharCode(64);
+        var emailAtIndex = memberData.email.indexOf(atSymbol);
+        if (emailAtIndex === -1 || emailAtIndex === 0 || emailAtIndex === memberData.email.length - 1) {
+            showValidationError("Geçerli bir e-posta adresi girin.");
+            return false;
+        }
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Kaydediliyor...';
+
+        try {
+            const response = await fetch('/api/api/members', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                credentials: 'include',
+                body: JSON.stringify(memberData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Kullanıcı başarıyla oluşturuldu!');
+                window.location.href = '/Admin/Admin/Members';
+            } else {
+                showValidationError(result.message || 'Kullanıcı oluşturulurken bir hata oluştu.');
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('API çağrısı sırasında hata:', error);
+            showValidationError('Bağlantı hatası: ' + error.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+
+        return false;
+    }
+</script>
+

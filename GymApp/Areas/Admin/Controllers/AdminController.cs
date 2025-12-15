@@ -7,11 +7,7 @@ using System.Linq;
 
 namespace GymApp.Areas.Admin.Controllers;
 
-/// <summary>
-/// Admin Controller - Admin paneli için CRUD işlemlerini yönetir
-/// CRUD işlemleri: Spor salonu, antrenör, aktivite ve randevu yönetimi
-/// Authorization: Sadece Admin rolü erişebilir
-/// </summary>
+// Admin paneli için spor salonu, antrenör, aktivite, randevu ve AI sohbetlerini yöneten controller.
 [Area("Admin")]
 [Authorize(Roles = "Admin")] // Rol bazlı yetkilendirme: Sadece Admin rolü erişebilir
 public class AdminController : Controller
@@ -113,6 +109,37 @@ public class AdminController : Controller
         SetActiveMenu("members");
         var members = await _memberService.GetAllMembersAsync();
         return View(members);
+    }
+
+    // GET: Admin/Admin/CreateMember - Yeni üye oluşturma sayfası
+    [HttpGet]
+    public IActionResult CreateMember()
+    {
+        if (!IsAdmin())
+        {
+            return RedirectToLogin();
+        }
+
+        SetActiveMenu("members");
+        return View();
+    }
+
+    // GET: Admin/Admin/EditMember/{id} - Üye düzenleme sayfası
+    [HttpGet]
+    public async Task<IActionResult> EditMember(int id)
+    {
+        if (!IsAdmin())
+        {
+            return RedirectToLogin();
+        }
+
+        SetActiveMenu("members");
+        var member = await _memberService.GetMemberByIdAsync(id);
+        if (member == null)
+        {
+            return NotFound();
+        }
+        return View(member);
     }
 
     // Trainers Management

@@ -5,11 +5,7 @@ using GymApp.Repositories;
 
 namespace GymApp.Controllers;
 
-/// <summary>
-/// AIRecommendation Controller - Yapay zeka destekli fitness danışmanı işlemlerini yönetir
-/// AI Entegrasyonu: Gemini API kullanarak egzersiz ve diyet önerileri sağlar
-/// Authorization: Giriş yapmış kullanıcılar erişebilir
-/// </summary>
+// Yapay zeka ile egzersiz/diyet önerilerini yöneten controller.
 [Authorize(Roles = "User")] // Rol bazlı yetkilendirme: Sadece User rolü erişebilir (Admin erişemez)
 public class AIRecommendationController : Controller
 {
@@ -17,9 +13,7 @@ public class AIRecommendationController : Controller
     private readonly IAIService _aiService;
     private readonly IMemberRepository _memberRepository;
 
-    /// <summary>
-    /// Constructor - Dependency injection ile servisleri alır
-    /// </summary>
+    // Constructor - chat, AI ve üye repository bağımlılıklarını alır.
     public AIRecommendationController(
         IChatMessageService chatMessageService,
         IAIService aiService,
@@ -30,10 +24,7 @@ public class AIRecommendationController : Controller
         _memberRepository = memberRepository;
     }
 
-    /// <summary>
-    /// Index - AI önerileri sayfasını gösterir
-    /// Authorization: Giriş yapmış kullanıcılar erişebilir
-    /// </summary>
+    // GET: /AIRecommendation - Kullanıcının AI öneri ekranını ve geçmiş sohbetlerini gösterir.
     public async Task<IActionResult> Index()
     {
         // Giriş kontrolü
@@ -57,10 +48,7 @@ public class AIRecommendationController : Controller
         return View();
     }
     
-    /// <summary>
-    /// TestAI - AI API bağlantısını test eder
-    /// Test endpoint: API key yapılandırmasını kontrol eder
-    /// </summary>
+    // GET: /AIRecommendation/TestAI - Gemini API yapılandırmasını test eder.
     [HttpGet]
     public IActionResult TestAI()
     {
@@ -75,17 +63,56 @@ public class AIRecommendationController : Controller
         });
     }
 
-    /// <summary>
-    /// SendMessage - AI chatbot'a mesaj gönderir ve yanıt alır
-    /// AI Entegrasyonu: Gemini API ile sohbet yapar
-    /// Fotoğraf desteği: IFormFile ile fotoğraf yükleme desteği
-    /// </summary>
-    /// <param name="message">Kullanıcı mesajı</param>
-    /// <param name="bodyType">Vücut tipi (opsiyonel)</param>
-    /// <param name="height">Boy (cm) (opsiyonel)</param>
-    /// <param name="weight">Kilo (kg) (opsiyonel)</param>
-    /// <param name="photoDescription">Fotoğraf açıklaması (opsiyonel)</param>
-    /// <param name="photoFile">Yüklenen fotoğraf (opsiyonel)</param>
+    // GET: /AIRecommendation/ListModels - Mevcut Gemini modellerini listeler (test için).
+    [HttpGet]
+    public async Task<IActionResult> ListModels()
+    {
+        var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var apiKey = configuration["Gemini:ApiKey"];
+        
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            return Json(new { success = false, message = "API anahtarı bulunamadı." });
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            
+            // v1beta API'sinden modelleri listele
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models?key={apiKey}";
+            var response = await httpClient.GetAsync(url);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return Json(new { success = true, data = content, apiVersion = "v1beta" });
+            }
+            else
+            {
+                // v1 API'sini dene
+                url = $"https://generativelanguage.googleapis.com/v1/models?key={apiKey}";
+                response = await httpClient.GetAsync(url);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = true, data = content, apiVersion = "v1" });
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = errorContent });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    // POST: /AIRecommendation/SendMessage - Sohbet mesajı gönderip AI cevabını döndürür.
     [HttpPost]
     public async Task<IActionResult> SendMessage(string message, string? bodyType = null, double? height = null, double? weight = null, string? photoDescription = null, IFormFile? photoFile = null)
     {
@@ -196,11 +223,7 @@ public class AIRecommendationController : Controller
         }
     }
 
-    /// <summary>
-    /// GetExerciseRecommendation - Egzersiz planı önerisi alır
-    /// AI Entegrasyonu: Gemini API ile özelleştirilmiş egzersiz planı oluşturur
-    /// Fotoğraf desteği: Fotoğraf yüklendiğinde AI analiz eder
-    /// </summary>
+    // POST: /AIRecommendation/GetExerciseRecommendation - AI'dan egzersiz planı ister.
     /// <param name="bodyType">Vücut tipi</param>
     /// <param name="height">Boy (cm) (opsiyonel)</param>
     /// <param name="weight">Kilo (kg) (opsiyonel)</param>
@@ -257,10 +280,7 @@ public class AIRecommendationController : Controller
         }
     }
 
-    /// <summary>
-    /// GetDietRecommendation - Diyet planı önerisi alır
-    /// AI Entegrasyonu: Gemini API ile özelleştirilmiş diyet planı oluşturur
-    /// </summary>
+    // POST: /AIRecommendation/GetDietRecommendation - AI'dan diyet planı ister.
     /// <param name="bodyType">Vücut tipi</param>
     /// <param name="height">Boy (cm) (opsiyonel)</param>
     /// <param name="weight">Kilo (kg) (opsiyonel)</param>
@@ -294,6 +314,33 @@ public class AIRecommendationController : Controller
             await _chatMessageService.UpdateChatMessageResponseAsync(chatMessage.Id, recommendation);
 
             return Json(new { success = true, response = recommendation });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"Hata: {ex.Message}" });
+        }
+    }
+
+    // POST: /AIRecommendation/ClearChat - Kullanıcının tüm sohbet geçmişini siler.
+    [HttpPost]
+    public async Task<IActionResult> ClearChat()
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail");
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return Json(new { success = false, message = "Giriş yapmanız gerekiyor." });
+        }
+
+        var member = await _memberRepository.GetByEmailAsync(userEmail);
+        if (member == null)
+        {
+            return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+        }
+
+        try
+        {
+            await _chatMessageService.DeleteChatMessagesByMemberIdAsync(member.Id);
+            return Json(new { success = true, message = "Sohbet geçmişi temizlendi." });
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 namespace GymApp.Entities;
 
+// Sistemde tanımlı tüm aktivite türlerini temsil eden enum.
 public enum ActivityType
 {
     Fitness = 1,

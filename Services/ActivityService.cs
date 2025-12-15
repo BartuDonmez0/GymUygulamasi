@@ -5,32 +5,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GymApp.Services;
 
+// Aktivite (ders/hizmet) ile ilgili iş kurallarını yöneten servis.
 public class ActivityService : IActivityService
 {
     private readonly IActivityRepository _activityRepository;
     private readonly GymAppDbContext _context;
 
+    // Constructor - repository ve DbContext bağımlılıklarını alır.
     public ActivityService(IActivityRepository activityRepository, GymAppDbContext context)
     {
         _activityRepository = activityRepository;
         _context = context;
     }
 
+    // Tüm aktiviteleri spor salonu bilgisi ile birlikte döndürür.
     public async Task<IEnumerable<Activity>> GetAllActivitiesAsync()
     {
         return await _activityRepository.GetWithGymCenterAsync();
     }
 
+    // Belirli bir spor salonuna ait aktiviteleri döndürür.
     public async Task<IEnumerable<Activity>> GetActivitiesByGymCenterIdAsync(int gymCenterId)
     {
         return await _activityRepository.GetByGymCenterIdAsync(gymCenterId);
     }
 
+    // Id'ye göre tek bir aktiviteyi, spor salonu bilgisi ile birlikte döndürür.
     public async Task<Activity?> GetActivityByIdAsync(int id)
     {
         return await _activityRepository.GetWithGymCenterAsync(id);
     }
 
+    // Yeni aktivite kaydı oluşturur, temel doğrulamaları yapar.
     public async Task<Activity> CreateActivityAsync(Activity activity)
     {
         // GymCenterId'nin geçerli olup olmadığını kontrol et
@@ -42,7 +48,7 @@ public class ActivityService : IActivityService
             throw new InvalidOperationException($"Geçersiz GymCenterId: {activity.GymCenterId}");
         }
         
-        // Navigation property'leri temizliyoruz
+        // Navigation property'leri temizle
         activity.GymCenter = null!;
         activity.TrainerActivities = new List<TrainerActivity>();
         activity.Appointments = new List<Appointment>();
@@ -62,6 +68,7 @@ public class ActivityService : IActivityService
         return await _activityRepository.AddAsync(activity);
     }
 
+    // Var olan bir aktivite kaydını günceller.
     public async Task<Activity> UpdateActivityAsync(Activity activity)
     {
         // Mevcut activity'yi veritabanından çek (tracking için)
@@ -97,6 +104,7 @@ public class ActivityService : IActivityService
         return existingActivity;
     }
 
+    // Id'ye göre aktivite kaydını siler (varsa).
     public async Task DeleteActivityAsync(int id)
     {
         var activity = await _activityRepository.GetByIdAsync(id);
