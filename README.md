@@ -1,10 +1,10 @@
-# 🏋️ GymApp - Spor Salonu Yönetim Sistemi
+#  GymApp - Spor Salonu Yönetim Sistemi
 
 ASP.NET Core MVC tabanlı, modern bir spor salonu yönetim ve randevu sistemi.
 
-## 📋 Özellikler
+##  Özellikler
 
-### 🎯 Temel Özellikler
+###  Temel Özellikler
 
 - **Spor Salonu Yönetimi**: Salon bilgileri, çalışma saatleri ve fotoğrafları
 - **Antrenör Yönetimi**: Antrenör profilleri, uzmanlık alanları ve çalışma saatleri
@@ -12,18 +12,18 @@ ASP.NET Core MVC tabanlı, modern bir spor salonu yönetim ve randevu sistemi.
 - **Randevu Sistemi**: Üye-antrenör randevu yönetimi
 - **Üye Yönetimi**: Üye kayıtları ve profil yönetimi
 
-### 🤖 AI Entegrasyonu
+###  AI Entegrasyonu
 
 - **Gemini AI**: Google Gemini API ile yapay zeka destekli öneriler
 - **Akıllı Öneriler**: Kişiselleştirilmiş egzersiz ve antrenman önerileri
 
-### 💬 Chat Sistemi
+###  Chat Sistemi
 
 - **AI Chatbot**: Üyeler Gemini AI ile sohbet edebilir
 - **Mesaj Geçmişi**: Tüm chat mesajları kaydedilir ve görüntülenebilir
 - **Anlık Yanıtlar**: AI'dan hızlı ve akıllı yanıtlar alınır
 
-### 👨‍💼 Admin Paneli
+###  Admin Paneli
 
 - **Yönetim Paneli**: Tüm sistem verilerinin yönetimi
 - **Mesaj Yönetimi**: Chat mesajlarının görüntülenmesi ve yönetimi
@@ -38,7 +38,7 @@ ASP.NET Core MVC tabanlı, modern bir spor salonu yönetim ve randevu sistemi.
 - **Bootstrap**: Frontend framework
 - **Gemini AI API**: Yapay zeka entegrasyonu
 
-## 📦 Proje Yapısı
+##  Proje Yapısı
 
 ```
 GymUygulamasi/
@@ -52,7 +52,7 @@ GymUygulamasi/
     └── Areas/Admin/   # Admin paneli
 ```
 
-## 🚀 Kurulum
+##  Kurulum
 
 1. **Gereksinimler**
 
