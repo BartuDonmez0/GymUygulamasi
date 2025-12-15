@@ -29,7 +29,7 @@ ASP.NET Core MVC tabanlı, modern bir spor salonu yönetim ve randevu sistemi.
 - **Mesaj Yönetimi**: Chat mesajlarının görüntülenmesi ve yönetimi
 - **Rol Bazlı Yetkilendirme**: Admin ve User rolleri
 
-## 🛠️ Teknolojiler
+##  Teknolojiler
 
 - **.NET 9.0**: Backend framework
 - **ASP.NET Core MVC**: Web framework
